@@ -14,12 +14,17 @@
 
 from openai import OpenAI
 import os
+import sys
 
 from typing import Any, Optional, Dict
 import google
 import vertexai
 from vertexai.preview import generative_models
 from anthropic import AnthropicVertex
+
+# 导入API配置
+sys.path.append('..')
+from api_config import api_config
 
 
 def generate(model, **kwargs):
@@ -104,10 +109,16 @@ def generate_glm(
     json_mode: bool = True,
     **kwargs,
 ):
-    base_url = os.environ.get("GLM_BASE_URL", "https://open.bigmodel.cn/api/paas/v4")
-    api_key = os.environ.get("GLM_API_KEY") or os.environ.get("ZHIPU_API_KEY")
+    # 从配置文件获取API密钥
+    base_url = api_config.get_api_base_url("glm")
+    api_key = api_config.get_api_key("glm")
+
+    # 如果配置文件中没有，回退到环境变量
     if not api_key:
-        raise RuntimeError("Missing GLM_API_KEY (or ZHIPU_API_KEY) environment variable")
+        api_key = os.environ.get("GLM_API_KEY") or os.environ.get("ZHIPU_API_KEY")
+
+    if not api_key:
+        raise RuntimeError("Missing GLM API key. Please set GLM_API_KEY in api_config.json or environment variable")
 
     client = OpenAI(
         base_url=base_url,
@@ -125,22 +136,13 @@ def generate_glm(
     return response.choices[0].message.content
 
 
-# anthropic
+# anthropic - 已禁用以避免Google Cloud认证问题
 def generate_authropic(model: str, prompt: str, **kwargs):
-    # For local development, run `gcloud auth application-default login` first to
-    # create the application default credentials, which will be picked up
-    # automatically here.
-    _, project_id = google.auth.default()
-    client = AnthropicVertex(region="us-east5", project_id=project_id)
-
-    response = client.messages.create(
-        model=model, messages=[{"role": "user", "content": prompt}], max_tokens=1024
-    )
-
-    return response.content[0].text
+    """Anthropic Claude API - 已禁用，使用GLM替代"""
+    raise RuntimeError("Anthropic API is disabled. Please use GLM models instead.")
 
 
-# vertexai
+# vertexai - 已禁用以避免Google Cloud认证问题
 def generate_vertexai(
     model: str,
     prompt: str,
@@ -149,60 +151,5 @@ def generate_vertexai(
     json_schema: Optional[Dict[str, Any]] = None,
     **kwargs,
 ) -> str:
-    """Generates text content using Vertex AI."""
-
-    # For local development, run `gcloud auth application-default login` first to
-    # create the application default credentials, which will be picked up
-    # automatically here.
-    credentials, project_id = google.auth.default()
-
-    vertexai.init(
-        project=project_id,
-        location="us-central1",
-        credentials=credentials,
-    )
-    model_endpoint = generative_models.GenerativeModel(model)
-
-    # 1.5 flash doesn't support constrained decoding as of 6/5/2024, so we
-    # disable json_schema for it. Otherwise, the library will throw an unsupported
-    # error.
-    if "flash" in model:
-        json_schema = None
-
-    response_mimetype = None
-    if json_mode or json_schema is not None:
-        response_mimetype = "application/json"
-    config = generative_models.GenerationConfig(
-        temperature=temperature,
-        response_mime_type=response_mimetype,
-        response_schema=json_schema,
-    )
-
-    # Safety config.
-    safety_config = [
-        generative_models.SafetySetting(
-            category=generative_models.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-            threshold=generative_models.HarmBlockThreshold.BLOCK_NONE,
-        ),
-        generative_models.SafetySetting(
-            category=generative_models.HarmCategory.HARM_CATEGORY_HARASSMENT,
-            threshold=generative_models.HarmBlockThreshold.BLOCK_NONE,
-        ),
-        generative_models.SafetySetting(
-            category=generative_models.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-            threshold=generative_models.HarmBlockThreshold.BLOCK_NONE,
-        ),
-        generative_models.SafetySetting(
-            category=generative_models.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-            threshold=generative_models.HarmBlockThreshold.BLOCK_NONE,
-        ),
-    ]
-    response = model_endpoint.generate_content(
-        prompt,
-        generation_config=config,
-        stream=False,
-        safety_settings=safety_config,
-    )
-    assert isinstance(response, generative_models.GenerationResponse)
-
-    return response.text
+    """Google Vertex AI - 已禁用，使用GLM替代"""
+    raise RuntimeError("Google Vertex AI is disabled. Please use GLM models like glmz1-flash instead.")

@@ -1,0 +1,46 @@
+{
+  "apis": {
+    "glm": {
+      "api_key": "93b71f4aac504ff3ba6683f4c195a56a.Z0SlsuluDhKL4Y4T",
+      "base_url": "https://open.bigmodel.cn/api/paas/v4",
+      "description": "智谱AI GLM API"
+    },
+    "openai": {
+      "api_key": "",
+      "base_url": "https://api.openai.com/v1",
+      "description": "OpenAI API"
+    },
+    "openrouter": {
+      "api_key": "",
+      "base_url": "https://openrouter.ai/api/v1",
+      "description": "OpenRouter API"
+    }
+  },
+  "models": {
+    "glmz1-flash": {
+      "api_type": "glm",
+      "model_name": "GLM-Z1-Flash",
+      "enabled": true
+    },
+    "glm45-flash": {
+      "api_type": "glm",
+      "model_name": "GLM-4.5-Flash",
+      "enabled": true
+    },
+    "gpt4o": {
+      "api_type": "openai",
+      "model_name": "gpt-4o",
+      "enabled": false
+    },
+    "flash": {
+      "api_type": "google_cloud",
+      "model_name": "gemini-1.5-flash-001",
+      "enabled": false
+    }
+  },
+  "google_cloud": {
+    "enabled": false,
+    "project_id": "",
+    "description": "Google Cloud API (已禁用，优先使用GLM)"
+  }
+}

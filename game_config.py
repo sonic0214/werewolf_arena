@@ -7,6 +7,10 @@ MAX_DEBATE_TURNS = 2               # 每轮最大辩论次数 / Maximum debate t
 DEFAULT_THREADS = 5                # 默认线程数 / Default number of threads for parallel processing
 RETRIES = 3                        # API调用失败重试次数 / Number of retries for failed API calls
 
+# 前端刷新配置 / Frontend Refresh Configuration
+FRONTEND_REFRESH_INTERVAL = 2000   # 前端刷新间隔（毫秒）/ Frontend refresh interval in milliseconds
+STANDARD_REFRESH_INTERVAL = 1500   # 标准页面刷新间隔（毫秒）/ Standard page refresh interval in milliseconds
+
 # 游戏规则配置 / Game Rules Configuration
 RUN_SYNTHETIC_VOTES = True         # 是否运行合成投票 / Whether to run synthetic votes
 

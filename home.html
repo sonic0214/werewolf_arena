@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>狼人杀竞技场 - Werewolf Arena</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 60px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 90%;
+            backdrop-filter: blur(10px);
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 800;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 1.2em;
+        }
+
+        .game-setup {
+            margin: 40px 0;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #444;
+            font-size: 1.1em;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .model-hint {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .start-button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 18px 50px;
+            font-size: 1.2em;
+            font-weight: 600;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            margin-top: 30px;
+            min-width: 200px;
+        }
+
+        .start-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+        }
+
+        .start-button:active {
+            transform: translateY(0);
+        }
+
+        .start-button.loading {
+            background: #ccc;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border: 1px solid #fcc;
+            display: none;
+        }
+
+        .success-message {
+            background: #efe;
+            color: #3c3;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border: 1px solid #cfc;
+            display: none;
+        }
+
+        .feature-list {
+            text-align: left;
+            margin: 30px 0;
+            padding: 20px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 12px;
+        }
+
+        .feature-list h3 {
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+
+        .feature-list ul {
+            list-style: none;
+        }
+
+        .feature-list li {
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .feature-list li:before {
+            content: "🎯";
+            position: absolute;
+            left: 0;
+        }
+
+        .available-models {
+            font-size: 0.85em;
+            color: #666;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .available-models h4 {
+            margin-bottom: 8px;
+            color: #444;
+        }
+
+        .model-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 8px;
+        }
+
+        .model-option {
+            background: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .model-option:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐺 狼人杀竞技场</h1>
+        <p class="subtitle">Werewolf Arena - AI对战平台</p>
+
+        <div class="game-setup">
+            <div class="form-group">
+                <label for="v-model">村民模型 (Villager Model)</label>
+                <input type="text" id="v-model" value="glmz1-flash" placeholder="输入村民使用的AI模型">
+                <p class="model-hint">村民、预言家、医生使用的模型</p>
+            </div>
+
+            <div class="form-group">
+                <label for="w-model">狼人模型 (Werewolf Model)</label>
+                <input type="text" id="w-model" value="glmz1-flash" placeholder="输入狼人使用的AI模型">
+                <p class="model-hint">狼人角色使用的模型</p>
+            </div>
+
+            <button class="start-button" id="start-game" onclick="startGame()">
+                🎮 模拟开局
+            </button>
+
+            <div class="error-message" id="error-message"></div>
+            <div class="success-message" id="success-message"></div>
+        </div>
+
+        <div class="available-models">
+            <h4>🤖 可用模型 (点击选择)</h4>
+            <div class="model-options">
+                <div class="model-option" onclick="selectModel('glmz1-flash', 'v')">glmz1-flash</div>
+                <div class="model-option" onclick="selectModel('glm45-flash', 'v')">glm45-flash</div>
+                <div class="model-option" onclick="selectModel('glm4-air', 'v')">glm4-air</div>
+                <div class="model-option" onclick="selectModel('glm4', 'v')">glm4</div>
+                <div class="model-option" onclick="selectModel('gpt4o', 'v')">gpt4o</div>
+                <div class="model-option" onclick="selectModel('gpt4', 'v')">gpt4</div>
+                <div class="model-option" onclick="selectModel('flash', 'v')">flash</div>
+                <div class="model-option" onclick="selectModel('pro1.5', 'v')">pro1.5</div>
+            </div>
+        </div>
+
+        <div class="feature-list">
+            <h3>✨ 平台特色</h3>
+            <ul>
+                <li>多AI模型智能对战</li>
+                <li>实时游戏进程观看</li>
+                <li>详细推理过程展示</li>
+                <li>可自定义游戏参数</li>
+                <li>支持多种AI模型对比</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function selectModel(model, type) {
+            if (type === 'v') {
+                document.getElementById('v-model').value = model;
+            } else {
+                document.getElementById('w-model').value = model;
+            }
+        }
+
+        async function startGame() {
+            const vModel = document.getElementById('v-model').value.trim();
+            const wModel = document.getElementById('w-model').value.trim();
+            const button = document.getElementById('start-game');
+            const errorMsg = document.getElementById('error-message');
+            const successMsg = document.getElementById('success-message');
+
+            // 隐藏之前的消息
+            errorMsg.style.display = 'none';
+            successMsg.style.display = 'none';
+
+            // 验证输入
+            if (!vModel || !wModel) {
+                errorMsg.textContent = '请输入村民模型和狼人模型';
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            // 显示加载状态
+            button.disabled = true;
+            button.classList.add('loading');
+            button.innerHTML = '<span class="loading-spinner"></span>正在启动游戏...';
+
+            try {
+                const response = await fetch('/start-game', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        v_models: vModel,
+                        w_models: wModel
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    if (result.session_id) {
+                        successMsg.textContent = `游戏启动成功！正在跳转到直播间... (游戏ID: ${result.session_id})`;
+                        successMsg.style.display = 'block';
+
+                        // 直接跳转到直播间，因为session_id已经可用
+                        setTimeout(() => {
+                            window.location.href = `/index_live.html?session_id=${result.session_id}`;
+                        }, 2000);
+                    } else {
+                        errorMsg.textContent = '启动失败：未能获取游戏ID';
+                        errorMsg.style.display = 'block';
+                        button.disabled = false;
+                        button.classList.remove('loading');
+                        button.innerHTML = '🎮 模拟开局';
+                    }
+                } else {
+                    errorMsg.textContent = `启动失败: ${result.error}`;
+                    errorMsg.style.display = 'block';
+                    button.disabled = false;
+                    button.classList.remove('loading');
+                    button.innerHTML = '🎮 模拟开局';
+                }
+            } catch (error) {
+                console.error('启动游戏失败:', error);
+                errorMsg.textContent = `启动失败: ${error.message}`;
+                errorMsg.style.display = 'block';
+                button.disabled = false;
+                button.classList.remove('loading');
+                button.innerHTML = '🎮 模拟开局';
+            }
+        }
+
+  
+        // 支持回车键启动游戏
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                startGame();
+            }
+        });
+    </script>
+</body>
+</html>

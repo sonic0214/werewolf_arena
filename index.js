@@ -856,7 +856,7 @@ let demo = new Demo();
 let uiManager = new UIManager();
 // Initial render
 demo.retrieve_data();
-// Poll every 2 seconds for live updates
+// Poll every 1.5 seconds for live updates (优化刷新频率)
 setInterval(() => {
     demo.retrieve_data();
-}, 2000);
+}, 1500);

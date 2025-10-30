@@ -51,8 +51,8 @@ _ARENA = flags.DEFINE_boolean(
 )
 _THREADS = flags.DEFINE_integer("threads", DEFAULT_THREADS, "Number of threads to run.")
 
-DEFAULT_WEREWOLF_MODELS = ["flash", "pro1.5"]
-DEFAULT_VILLAGER_MODELS = ["flash", "pro1.5"]
+DEFAULT_WEREWOLF_MODELS = ["glmz1-flash", "glm45-flash"]
+DEFAULT_VILLAGER_MODELS = ["glmz1-flash", "glm45-flash"]
 RESUME_DIRECTORIES = []
 
 model_to_id = {

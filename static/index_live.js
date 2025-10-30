@@ -27,6 +27,7 @@ class WerewolfLiveStream {
         this.isLive = true;
         this.url = new URLSearchParams(window.location.search);
         this.sessionId = this.url.get('session_id') || '';
+        this.lastDataHash = null; // 用于检测数据变化
         if (this.sessionId.length == 0)
             throw new Error('No session specified');
         this.initializeEventListeners();
@@ -77,15 +78,38 @@ class WerewolfLiveStream {
     }
     async retrieveData() {
         try {
+            console.log(`[${new Date().toISOString()}] Retrieving data for session: ${this.sessionId}`);
+
             // 获取游戏日志
             const logsResponse = await fetch(`/logs/${this.sessionId}/game_logs.json`);
+            if (!logsResponse.ok) {
+                throw new Error(`Failed to fetch logs: ${logsResponse.status}`);
+            }
             const logs = await logsResponse.json();
+            console.log(`[${new Date().toISOString()}] Retrieved ${logs.length} rounds of logs`);
+
             // 获取游戏状态
             let stateResponse = await fetch(`/logs/${this.sessionId}/game_complete.json`);
+            let stateType = 'complete';
             if (stateResponse.status === 404) {
                 stateResponse = await fetch(`/logs/${this.sessionId}/game_partial.json`);
+                stateType = 'partial';
+            }
+            if (!stateResponse.ok) {
+                throw new Error(`Failed to fetch state: ${stateResponse.status}`);
             }
             const state = await stateResponse.json();
+            console.log(`[${new Date().toISOString()}] Retrieved ${stateType} state, winner: ${state.winner || 'none'}`);
+
+            // 暂时禁用数据哈希检查，直接处理所有数据
+            // const currentDataHash = this.calculateDataHash(logs, state);
+            // if (this.lastDataHash === currentDataHash) {
+            //     console.log(`[${new Date().toISOString()}] Data unchanged, skipping processing`);
+            //     return;
+            // }
+            // console.log(`[${new Date().toISOString()}] Data changed (hash: ${this.lastDataHash} -> ${currentDataHash})`);
+            // this.lastDataHash = currentDataHash;
+
             this.data = { logs, state };
             this.processGameData(logs, state);
         }
@@ -94,119 +118,181 @@ class WerewolfLiveStream {
             this.addSystemMessage('无法加载游戏数据');
         }
     }
-    processGameData(logs, state) {
-        // 检查游戏是否已完成
-        if (state.winner && this.messages.length > 0) {
-            // 游戏已完成且已有消息，不再处理
-            return;
+
+    calculateDataHash(logs, state) {
+        // 简单的哈希函数来检测数据变化 - 不使用时间戳
+        const dataStr = JSON.stringify({
+            roundsCount: logs.length,
+            winner: state.winner,
+            lastLogContent: logs.length > 0 ? JSON.stringify(logs[logs.length - 1]).slice(0, 100) : ''
+        });
+        return btoa(dataStr).slice(0, 16);
+    }
+
+    safeBase64Encode(str) {
+        try {
+            // 首先尝试直接编码
+            return btoa(str);
+        } catch (e) {
+            // 如果失败，使用UTF-8编码
+            return btoa(unescape(encodeURIComponent(str)));
         }
-        // 初始化玩家信息
+    }
+    processGameData(logs, state) {
+        // 初始化玩家信息（每次都更新以获取最新状态）
         this.initializePlayers(state);
         // 保存旧的消息数量用于比较
         const oldMessageCount = this.messages.length;
+
+        console.log(`[${new Date().toISOString()}] Processing game data: old messages=${oldMessageCount}, new logs=${logs.length}`);
+
         // 生成直播消息流
         this.generateLiveMessages(logs, state);
+
+        console.log(`[${new Date().toISOString()}] Generated ${this.messages.length} messages (was ${oldMessageCount})`);
+
         // 只有当消息有变化时才更新界面
         if (this.messages.length !== oldMessageCount) {
+            console.log(`[${new Date().toISOString()}] Updating UI - new messages available`);
             this.updateUI();
+        } else {
+            console.log(`[${new Date().toISOString()}] No UI update - same number of messages`);
         }
+
         // 如果游戏完成，添加完成消息
         if (state.winner && !this.messages.some(m => m.content.includes('游戏结束'))) {
+            console.log(`[${new Date().toISOString()}] Game completed! Winner: ${state.winner}`);
             this.addSystemMessage(`🎉 游戏结束！获胜者：${state.winner}`);
             this.updateUI();
         }
     }
     initializePlayers(state) {
+        // 先从游戏状态中获取所有玩家的初始信息
         this.players.clear();
+
+        // 收集所有被淘汰的玩家（从 state.rounds 中获取）
+        const eliminatedPlayers = new Set();
+        if (state.rounds && Array.isArray(state.rounds)) {
+            for (const round of state.rounds) {
+                if (round.eliminated) {
+                    eliminatedPlayers.add(round.eliminated);
+                }
+                if (round.exiled) {
+                    eliminatedPlayers.add(round.exiled);
+                }
+            }
+        }
+
+        let aliveCount = 0;
+        let eliminatedCount = 0;
+
         // 处理所有玩家
         for (const [name, playerData] of Object.entries(state.players)) {
             const player = playerData;
+            const isAlive = !eliminatedPlayers.has(name);
+
             this.players.set(name, {
                 name: player.name,
                 role: player.role,
                 avatar: `static/${name}.png`,
-                status: 'alive',
+                status: isAlive ? 'alive' : 'eliminated',
                 model: player.model || 'Unknown'
             });
+
+            if (isAlive) {
+                aliveCount++;
+            } else {
+                eliminatedCount++;
+            }
         }
+
         // 更新玩家数量统计
-        this.stats.aliveCount = Object.keys(state.players).length;
-        this.stats.eliminatedCount = 0;
+        this.stats.aliveCount = aliveCount;
+        this.stats.eliminatedCount = eliminatedCount;
         this.updatePlayersList();
     }
     generateLiveMessages(logs, state) {
-        // 如果已有消息且游戏未完成，不重新生成
-        if (this.messages.length > 0 && !state.winner) {
-            return;
-        }
-        // 只有在首次加载或游戏完成时才重新生成
-        if (this.messages.length === 0 || state.winner) {
-            this.messages = [];
-            let currentTime = new Date();
-            currentTime.setHours(14, 30, 0, 0); // 从14:30开始
-            for (let round = 0; round < logs.length; round++) {
-                const roundLog = logs[round];
-                this.stats.currentRound = round;
-                // 夜间阶段
-                this.stats.currentPhase = 'night';
-                this.updatePhaseDisplay();
-                // 处理夜间行动
-                if (roundLog.eliminate) {
-                    currentTime = this.addMinutes(currentTime, 1);
-                    this.addNightMessage(currentTime, 'Werewolf', `击杀目标：${roundLog.eliminate.result?.remove || '未知'}`, roundLog.eliminate);
-                }
-                if (roundLog.protect) {
-                    currentTime = this.addMinutes(currentTime, 1);
-                    this.addNightMessage(currentTime, 'Doctor', `保护目标：${roundLog.protect.result?.protect || '未知'}`, roundLog.protect);
-                }
-                if (roundLog.investigate) {
-                    currentTime = this.addMinutes(currentTime, 1);
-                    this.addNightMessage(currentTime, 'Seer', `查验目标：${roundLog.investigate.result?.investigate || '未知'}`, roundLog.investigate);
-                }
-                // 天亮公告
-                currentTime = this.addMinutes(currentTime, 2);
-                this.stats.currentPhase = 'day';
-                this.updatePhaseDisplay();
-                this.addSystemMessage(`天亮了！昨晚${roundLog.eliminated ? roundLog.eliminated + '被淘汰了' : '是平安夜'}`, currentTime);
-                // 白天阶段 - 竞拍发言权
-                if (roundLog.bid && Array.isArray(roundLog.bid)) {
-                    for (let turn = 0; turn < roundLog.bid.length; turn++) {
-                        const bidTurn = roundLog.bid[turn];
-                        if (Array.isArray(bidTurn)) {
-                            for (const [name, bidData] of bidTurn) {
-                                currentTime = this.addMinutes(currentTime, 2);
-                                this.addBidMessage(currentTime, name, bidData);
-                            }
+        console.log(`[${new Date().toISOString()}] Generating messages: logs.length=${logs.length}, current.messages=${this.messages.length}`);
+
+        // 暂时总是重新生成消息以确保更新
+        console.log(`[${new Date().toISOString()}] Regenerating all messages from scratch`);
+        this.messages = [];
+        let currentTime = new Date();
+        currentTime.setHours(14, 30, 0, 0); // 从14:30开始
+        for (let round = 0; round < logs.length; round++) {
+            const roundLog = logs[round];
+            const roundState = state.rounds && state.rounds[round] ? state.rounds[round] : null;
+            this.stats.currentRound = round;
+
+            // 夜间阶段
+            this.stats.currentPhase = 'night';
+            this.updatePhaseDisplay();
+            // 处理夜间行动
+            if (roundLog.eliminate) {
+                currentTime = this.addMinutes(currentTime, 1);
+                this.addNightMessage(currentTime, 'Werewolf', `击杀目标：${roundLog.eliminate.result?.remove || '未知'}`, roundLog.eliminate);
+            }
+            if (roundLog.protect) {
+                currentTime = this.addMinutes(currentTime, 1);
+                this.addNightMessage(currentTime, 'Doctor', `保护目标：${roundLog.protect.result?.protect || '未知'}`, roundLog.protect);
+            }
+            if (roundLog.investigate) {
+                currentTime = this.addMinutes(currentTime, 1);
+                this.addNightMessage(currentTime, 'Seer', `查验目标：${roundLog.investigate.result?.investigate || '未知'}`, roundLog.investigate);
+            }
+            // 天亮公告 - 从 roundState 获取被淘汰的玩家
+            currentTime = this.addMinutes(currentTime, 2);
+            this.stats.currentPhase = 'day';
+            this.updatePhaseDisplay();
+            const eliminatedPlayer = roundState?.eliminated;
+            this.addSystemMessage(
+                `天亮了！昨晚${eliminatedPlayer ? eliminatedPlayer + '被淘汰了' : '是平安夜'}`,
+                currentTime
+            );
+            // 白天阶段 - 竞拍发言权
+            if (roundLog.bid && Array.isArray(roundLog.bid)) {
+                for (let turn = 0; turn < roundLog.bid.length; turn++) {
+                    const bidTurn = roundLog.bid[turn];
+                    if (Array.isArray(bidTurn)) {
+                        for (const [name, bidData] of bidTurn) {
+                            currentTime = this.addMinutes(currentTime, 2);
+                            this.addBidMessage(currentTime, name, bidData);
                         }
-                        currentTime = this.addMinutes(currentTime, 1);
                     }
+                    currentTime = this.addMinutes(currentTime, 1);
                 }
-                // 辩论发言
-                if (roundLog.debate && Array.isArray(roundLog.debate)) {
-                    for (const [name, debateData] of roundLog.debate) {
-                        currentTime = this.addMinutes(currentTime, 3);
-                        this.addDebateMessage(currentTime, name, debateData);
-                    }
+            }
+            // 辩论发言
+            if (roundLog.debate && Array.isArray(roundLog.debate)) {
+                for (const [name, debateData] of roundLog.debate) {
+                    currentTime = this.addMinutes(currentTime, 3);
+                    this.addDebateMessage(currentTime, name, debateData);
                 }
-                // 投票阶段
-                if (roundLog.votes && roundLog.votes.length > 0) {
-                    currentTime = this.addMinutes(currentTime, 2);
-                    this.addSystemMessage('开始投票', currentTime);
-                    const finalVotes = roundLog.votes[roundLog.votes.length - 1];
-                    for (const vote of finalVotes) {
-                        currentTime = this.addMinutes(currentTime, 1);
-                        this.addVoteMessage(currentTime, vote.player, vote.log);
-                    }
-                    // 显示投票结果
-                    currentTime = this.addMinutes(currentTime, 2);
-                    this.displayVotingResults(finalVotes, currentTime);
+            }
+            // 投票阶段
+            if (roundLog.votes && roundLog.votes.length > 0) {
+                currentTime = this.addMinutes(currentTime, 2);
+                this.addSystemMessage('开始投票', currentTime);
+                const finalVotes = roundLog.votes[roundLog.votes.length - 1];
+                for (const vote of finalVotes) {
+                    currentTime = this.addMinutes(currentTime, 1);
+                    this.addVoteMessage(currentTime, vote.player, vote.log);
                 }
-                // 总结发言
-                if (roundLog.summaries && Array.isArray(roundLog.summaries)) {
-                    for (const [name, summaryData] of roundLog.summaries) {
-                        currentTime = this.addMinutes(currentTime, 3);
-                        this.addSummaryMessage(currentTime, name, summaryData);
-                    }
+                // 显示投票结果和被驱逐的玩家
+                currentTime = this.addMinutes(currentTime, 2);
+                this.displayVotingResults(finalVotes, currentTime);
+
+                // 添加驱逐公告
+                const exiledPlayer = roundState?.exiled;
+                if (exiledPlayer) {
+                    this.addSystemMessage(`${exiledPlayer}被驱逐出局`, currentTime);
+                }
+            }
+            // 总结发言
+            if (roundLog.summaries && Array.isArray(roundLog.summaries)) {
+                for (const [name, summaryData] of roundLog.summaries) {
+                    currentTime = this.addMinutes(currentTime, 3);
+                    this.addSummaryMessage(currentTime, name, summaryData);
                 }
             }
         }
@@ -305,29 +391,59 @@ class WerewolfLiveStream {
         const container = document.getElementById('chat-messages');
         if (!container)
             return;
-        // 检查是否已有消息，如果有就不再重新渲染
+
+        // 如果消息列表为空，清空容器
+        if (this.messages.length === 0) {
+            container.innerHTML = '';
+            return;
+        }
+
+        // 检查是否已有消息
         if (container.children.length > 0) {
-            // 只添加新消息
             const lastMessageId = container.lastElementChild?.getAttribute('data-message-id');
             const lastRenderedIndex = this.messages.findIndex(m => m.id === lastMessageId);
+
+            // 如果找到最后渲染的消息，且还有新消息，则只添加新消息
             if (lastRenderedIndex !== -1 && lastRenderedIndex < this.messages.length - 1) {
-                // 只添加新消息
                 for (let i = lastRenderedIndex + 1; i < this.messages.length; i++) {
                     setTimeout(() => {
                         this.addMessageToUI(this.messages[i]);
                         this.scrollToBottom();
-                    }, (i - lastRenderedIndex) * 100);
+                    }, (i - lastRenderedIndex) * 50); // 减少延迟从100ms到50ms
                 }
                 return;
             }
+
+            // 如果最后的消息ID不匹配，说明消息列表已重新生成，需要完全重新渲染
+            if (lastRenderedIndex === -1 && this.messages.length > container.children.length) {
+                // 找到容器中最后一条消息在新消息列表中的位置
+                let foundIndex = -1;
+                for (let i = container.children.length - 1; i >= 0; i--) {
+                    const msgId = container.children[i].getAttribute('data-message-id');
+                    foundIndex = this.messages.findIndex(m => m.id === msgId);
+                    if (foundIndex !== -1) break;
+                }
+
+                // 如果找到匹配的消息，只添加后续的新消息
+                if (foundIndex !== -1 && foundIndex < this.messages.length - 1) {
+                    for (let i = foundIndex + 1; i < this.messages.length; i++) {
+                        setTimeout(() => {
+                            this.addMessageToUI(this.messages[i]);
+                            this.scrollToBottom();
+                        }, (i - foundIndex) * 50);
+                    }
+                    return;
+                }
+            }
         }
-        // 首次渲染所有消息
+
+        // 首次渲染或需要完全重新渲染所有消息
         container.innerHTML = '';
         this.messages.forEach((message, index) => {
             setTimeout(() => {
                 this.addMessageToUI(message);
                 this.scrollToBottom();
-            }, index * 100);
+            }, index * 50); // 减少延迟从100ms到50ms
         });
     }
     addMessageToUI(message) {
@@ -343,7 +459,7 @@ class WerewolfLiveStream {
       <div class="message-time">${message.timestamp}</div>
       <div class="message-content">
         <img class="message-avatar" src="${avatarSrc}" alt="${message.player}"
-             onerror="this.src='data:image/svg+xml;base64,${btoa(this.generateAvatarSVG(message.player))}'">
+             onerror="this.src='data:image/svg+xml;base64,${this.safeBase64Encode(this.generateAvatarSVG(message.player))}'">
         <div class="message-body">
           <div class="message-header">
             <span class="message-player">${message.player}</span>
@@ -388,7 +504,7 @@ class WerewolfLiveStream {
             const avatarSrc = player.avatar;
             playerElement.innerHTML = `
         <img class="player-avatar" src="${avatarSrc}" alt="${player.name}"
-             onerror="this.src='data:image/svg+xml;base64,${btoa(this.generateAvatarSVG(player.name))}'">
+             onerror="this.src='data:image/svg+xml;base64,${this.safeBase64Encode(this.generateAvatarSVG(player.name))}'">
         <div class="player-info">
           <div class="player-name">${player.name}</div>
           <div class="player-status ${player.status}">${this.getRoleDisplayName(player.role)} • ${player.status === 'alive' ? '存活' : '淘汰'}</div>
@@ -508,14 +624,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         // 加载游戏数据
         liveStream.retrieveData();
-        // 定期更新（模拟实时），但检查游戏是否已结束
+        // 定期更新（模拟实时）
         setInterval(() => {
-            if (liveStream.data?.state?.winner) {
-                // 游戏已结束，停止更新
-                return;
-            }
             liveStream.retrieveData();
-        }, 5000);
+        }, 3000); // 每3秒更新一次，减少频率
     }
     catch (error) {
         console.error('Failed to initialize live stream:', error);

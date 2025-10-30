@@ -97,9 +97,11 @@ def generate(
 
         except Exception as e:
             print(f"Retrying due to Exception: {e}")
-        temperature = min(1.0, temperature + 0.2)
-        # Guard against None values to avoid join errors later
-        raw_responses.append(raw_resp if isinstance(raw_resp, str) else "")
+            # Add debugging information
+            print(f"Raw response snippet: {str(raw_resp)[:200] if raw_resp else 'None'}")
+            temperature = min(1.0, temperature + 0.2)
+            # Guard against None values to avoid join errors later
+            raw_responses.append(raw_resp if isinstance(raw_resp, str) else "")
 
     return None, LmLog(
         prompt=prompt, raw_resp="-------".join(raw_responses), result=None

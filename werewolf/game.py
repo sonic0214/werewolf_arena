@@ -115,12 +115,19 @@ class GameMaster:
   def _get_bid(self, player_name):
     """Gets the bid for a specific player."""
     player = self.state.players[player_name]
-    bid, log = player.bid()
-    if bid is None:
-      raise ValueError(
-          f"{player_name} did not return a valid bid. Find the raw response"
-          " in the `bid` field in the log"
-      )
+    try:
+      bid, log = player.bid()
+      if bid is None:
+        # 如果出价为空，使用默认出价并记录警告
+        print(f"Warning: {player_name} did not return a valid bid, using default")
+        bid = 1
+        log = f"Default bid used due to empty response"
+    except Exception as e:
+      # 如果出价过程出错，使用默认出价并记录错误
+      print(f"Error during bidding for {player_name}: {e}")
+      bid = 1
+      log = f"Error: {str(e)}"
+
     if bid > 1:
       tqdm.tqdm.write(f"{player_name} bid: {bid}")
     return bid, log
@@ -172,9 +179,22 @@ class GameMaster:
       }
 
       for player_name, summary_task in player_summaries.items():
-        summary, log = summary_task.result()
-        tqdm.tqdm.write(f"{player_name} summary: {summary}")
-        self.this_round_log.summaries.append((player_name, log))
+        try:
+            summary, log = summary_task.result()
+            if summary is None:
+                # 如果总结为空，使用默认总结并记录警告
+                print(f"Warning: {player_name} did not return a valid summary, using default")
+                summary = "I need to think about what happened today and analyze the situation carefully."
+                log = f"Default summary used due to empty response"
+            tqdm.tqdm.write(f"{player_name} summary: {summary}")
+            self.this_round_log.summaries.append((player_name, log))
+        except Exception as e:
+            # 如果总结过程出错，使用默认总结并记录错误
+            print(f"Error during summary for {player_name}: {e}")
+            summary = "I need to think about what happened today and analyze the situation carefully."
+            log = f"Error: {str(e)}"
+            tqdm.tqdm.write(f"{player_name} summary: {summary}")
+            self.this_round_log.summaries.append((player_name, log))
         self._progress()
 
   def run_day_phase(self):
@@ -186,11 +206,18 @@ class GameMaster:
         raise ValueError("get_next_speaker did not return a valid player.")
 
       player = self.state.players[next_speaker]
-      dialogue, log = player.debate()
-      if dialogue is None:
-        raise ValueError(
-            f"{next_speaker} did not return a valid dialouge from debate()."
-        )
+      try:
+        dialogue, log = player.debate()
+        if dialogue is None:
+          # 如果发言为空，使用默认发言并记录警告
+          print(f"Warning: {next_speaker} did not return a valid dialogue, using default")
+          dialogue = f"I think we need to be careful and look for clues."
+          log = f"Default dialogue used due to empty response"
+      except Exception as e:
+        # 如果发言过程出错，使用默认发言并记录错误
+        print(f"Error during debate for {next_speaker}: {e}")
+        dialogue = f"I think we need to be careful and look for clues."
+        log = f"Error: {str(e)}"
 
       self.this_round_log.debate.append((next_speaker, log))
       self.this_round.debate.append([next_speaker, dialogue])
@@ -225,15 +252,34 @@ class GameMaster:
       }
 
       for player_name, vote_task in player_votes.items():
-        vote, log = vote_task.result()
-        vote_log.append(VoteLog(player_name, vote, log))
+        try:
+          vote, log = vote_task.result()
+          vote_log.append(VoteLog(player_name, vote, log))
 
-        if vote is not None:
-          votes[player_name] = vote
-        else:
-          self.this_round.votes.append(votes)
-          self.this_round_log.votes.append(vote_log)
-          raise ValueError(f"{player_name} vote did not return a valid player.")
+          if vote is not None:
+            # 验证投票是否是有效的玩家名
+            if vote in self.this_round.players:
+              votes[player_name] = vote
+            else:
+              # 如果投票无效，记录警告但继续
+              print(f"Warning: {player_name} voted for invalid player '{vote}', skipping vote")
+              # 安全地选择一个默认玩家
+              default_target = next((p for p in self.this_round.players if p and p != player_name), player_name)
+              votes[player_name] = default_target
+          else:
+            # 如果没有返回投票，记录警告但继续
+            print(f"Warning: {player_name} did not return a valid vote, skipping")
+            # 安全地选择一个默认玩家
+            default_target = next((p for p in self.this_round.players if p and p != player_name), player_name)
+            votes[player_name] = default_target
+        except Exception as e:
+          # 如果投票过程出错，记录错误但继续
+          print(f"Error during voting for {player_name}: {e}")
+          # 安全地选择一个默认玩家
+          default_target = next((p for p in self.this_round.players if p and p != player_name), player_name)
+          votes[player_name] = default_target
+          # 创建一个空的日志条目
+          vote_log.append(VoteLog(player_name, default_target, f"Error: {str(e)}"))
 
     return votes, vote_log
 

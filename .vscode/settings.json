@@ -1,0 +1,17 @@
+{
+    "python.defaultInterpreterPath": "./venv/bin/python",
+    "python.lsp.server": "pylsp",
+    "python.analysis.autoImportCompletions": true,
+    "python.analysis.typeCheckingMode": "basic",
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": true,
+    "python.formatting.provider": "black",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": "explicit"
+    },
+    "typescript.preferences.importModuleSpecifier": "relative",
+    "files.associations": {
+        "*.py": "python"
+    }
+}

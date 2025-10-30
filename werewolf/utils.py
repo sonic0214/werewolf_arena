@@ -47,6 +47,10 @@ def parse_json_str(text: str) -> Optional[Any]:
         result_json = yaml.safe_load(text)
     except yaml.parser.ParserError:
         return None
+    except Exception as e:
+        # Log any other parsing errors
+        print(f"JSON parsing error: {e}")
+        return None
 
     return result_json
 

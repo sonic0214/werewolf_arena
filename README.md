@@ -84,3 +84,7 @@ Once a game is completed, you can use the interactive viewer to explore the game
  - `npm i`
  - `npm run start`
  - Open the browser, e.g. `http://localhost:8080/?session_id=session_20240610_084702`
+
+
+# 使用免费大模型测试
+# python3 main.py --run --v_models=glmz1-flash --w_models=glmz1-flash

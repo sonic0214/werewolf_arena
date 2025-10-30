@@ -18,11 +18,163 @@ class Demo {
   url: URLSearchParams;
   session_id: string;
   data: any;
+  playerMessages: { [player: string]: any[] } = {};
 
   constructor() {
     this.url = new URLSearchParams(window.location.search);
     this.session_id = this.url.get('session_id') || '';
     if (this.session_id.length == 0) throw new Error('No session specified');
+  }
+
+  // Create timeline events from logs/state for chronological display
+  createTimelineEvents(logs: any[], state: any) {
+    const events: any[] = [];
+    const rounds = logs.length;
+
+    for (let round = 0; round < rounds; ++round) {
+      const rlog = logs[round];
+
+      // Night phase actions (eliminate, protect, investigate)
+      if (rlog.eliminate) {
+        // Find which wolf eliminated
+        for (const player of Object.keys(state.players)) {
+          if (rlog.eliminate.prompt && rlog.eliminate.prompt.includes(player)) {
+            events.push({
+              type: 'eliminate',
+              phase: 'night',
+              round,
+              player,
+              ...rlog.eliminate
+            });
+            break;
+          }
+        }
+      }
+
+      if (rlog.protect && rlog.protect.prompt) {
+        // Only doctor protects
+        for (const player of Object.keys(state.players)) {
+          if (rlog.protect.prompt.includes(player) && state.players[player].role === 'Doctor') {
+            events.push({
+              type: 'protect',
+              phase: 'night',
+              round,
+              player,
+              ...rlog.protect
+            });
+            break;
+          }
+        }
+      }
+
+      if (rlog.investigate && rlog.investigate.prompt) {
+        // Only seer investigates
+        for (const player of Object.keys(state.players)) {
+          if (rlog.investigate.prompt.includes(player) && state.players[player].role === 'Seer') {
+            events.push({
+              type: 'investigate',
+              phase: 'night',
+              round,
+              player,
+              ...rlog.investigate
+            });
+            break;
+          }
+        }
+      }
+
+      // Day phase: Bids (multiple turns)
+      if (Array.isArray(rlog.bid)) {
+        for (let turn = 0; turn < rlog.bid.length; turn++) {
+          const bidTurn = rlog.bid[turn];
+          if (Array.isArray(bidTurn)) {
+            for (const [name, entry] of bidTurn) {
+              events.push({
+                type: 'bid',
+                phase: 'day',
+                round,
+                turn,
+                player: name,
+                ...entry
+              });
+            }
+          }
+        }
+      }
+
+      // Day phase: Debate (multiple turns)
+      if (Array.isArray(rlog.debate)) {
+        for (let turn = 0; turn < rlog.debate.length; turn++) {
+          const [name, entry] = rlog.debate[turn];
+          events.push({
+            type: 'debate',
+            phase: 'day',
+            round,
+            turn,
+            player: name,
+            ...entry
+          });
+        }
+      }
+
+      // Day phase: Summaries
+      if (Array.isArray(rlog.summaries)) {
+        for (const [name, entry] of rlog.summaries) {
+          events.push({
+            type: 'summarize',
+            phase: 'day',
+            round,
+            player: name,
+            ...entry
+          });
+        }
+      }
+
+      // Day phase: Votes (final vote round)
+      if (Array.isArray(rlog.votes) && rlog.votes.length > 0) {
+        // Take the last voting round as final votes
+        const finalVotes = rlog.votes[rlog.votes.length - 1];
+        for (const vote of finalVotes) {
+          events.push({
+            type: 'vote',
+            phase: 'day',
+            round,
+            player: vote.player,
+            ...vote.log
+          });
+        }
+      }
+    }
+
+    // Sort events by precise chronological order
+    events.sort((a, b) => {
+      if (a.round !== b.round) return a.round - b.round;
+
+      // Night phase always comes before day phase
+      if (a.phase !== b.phase) {
+        return a.phase === 'night' ? -1 : 1;
+      }
+
+      // Within the same phase, sort by action type and turn
+      const phaseOrder = {
+        'night': ['eliminate', 'protect', 'investigate'],
+        'day': ['bid', 'debate', 'summarize', 'vote']
+      };
+
+      const aOrder = phaseOrder[a.phase]?.indexOf(a.type) ?? 999;
+      const bOrder = phaseOrder[b.phase]?.indexOf(b.type) ?? 999;
+
+      if (aOrder !== bOrder) return aOrder - bOrder;
+
+      // For actions with turns (bid, debate), sort by turn
+      if (a.turn !== undefined && b.turn !== undefined) {
+        return a.turn - b.turn;
+      }
+
+      return 0;
+    });
+
+    return events;
   }
 
   async retrieve_data() {
@@ -43,17 +195,11 @@ class Demo {
     console.log("state", state)
 
     this.data = { logs: logs, state: state };
-    // Reset UI before each render to support live refresh
-    uiManager.reset();
-    // Only render rounds that exist in both logs and state
-    const roundsToRender = Math.min(this.data['logs'].length, this.data['state']['rounds'].length);
-    for (let i = 0; i < roundsToRender; i++) {
-      this.process_logs(
-        this.data['logs'][i],
-        this.data['state']['rounds'][i],
-        i,
-      );
-    }
+    // Create timeline events
+    const timelineEvents = this.createTimelineEvents(logs, state);
+    // Render!
+    uiManager.renderTimelineView(timelineEvents, state.players);
+    // Process old state for debugging
     this.process_state(this.data['state']);
   }
 
@@ -206,6 +352,16 @@ class UIManager {
       const player_icon = document.createElement('img');
       player_icon.src = `static/${bid[0]}.png`;
       player_icon.classList.add('bid-icon');
+      player_icon.onerror = () => {
+        const colors = ['#dc3545', '#28a745', '#007bff', '#ffc107', '#6f42c1', '#fd7e14'];
+        const colorIndex = bid[0].charCodeAt(0) % colors.length;
+        player_icon.src = `data:image/svg+xml;base64,${btoa(`
+          <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="10" cy="10" r="10" fill="${colors[colorIndex]}"/>
+            <text x="10" y="14" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="8" font-weight="bold">${bid[0].charAt(0).toUpperCase()}</text>
+          </svg>
+        `)}`;
+      };
       bar.textContent = `${bid[0]}: ${bid_int}`;
       bar.prepend(player_icon);
       player_container.append(bar);
@@ -335,6 +491,16 @@ class UIManager {
     debate_name.textContent = debate[0];
     debate_icon.src = `static/${debate[0]}.png`;
     debate_icon.classList.add('debate-icon');
+    debate_icon.onerror = () => {
+      const colors = ['#dc3545', '#28a745', '#007bff', '#ffc107', '#6f42c1', '#fd7e14'];
+      const colorIndex = debate[0].charCodeAt(0) % colors.length;
+      debate_icon.src = `data:image/svg+xml;base64,${btoa(`
+        <svg width="42" height="42" viewBox="0 0 42 42" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="21" cy="21" r="21" fill="${colors[colorIndex]}"/>
+          <text x="21" y="28" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="16" font-weight="bold">${debate[0].charAt(0).toUpperCase()}</text>
+        </svg>
+      `)}`;
+    };
     debate_name.classList.add(this.get_role_from_name(debate[0]));
     name_and_image.append(debate_icon, debate_name);
 
@@ -646,6 +812,232 @@ class UIManager {
     this.transcript_container.textContent = '';
     this.debug_container.textContent = '';
     this.active_element = null;
+  }
+
+  renderPlayersOverview(players: any) {
+    // Clear existing content
+    this.player_container.textContent = '';
+
+    const overview = document.createElement('div');
+    overview.className = 'players-overview';
+
+    const title = document.createElement('h3');
+    title.textContent = 'Players Overview';
+    title.style.marginBottom = '8px';
+    overview.appendChild(title);
+
+    const grid = document.createElement('div');
+    grid.className = 'players-grid';
+
+    // Sort players by role for better visual organization
+    const playerNames = Object.keys(players);
+    const sortedPlayers = playerNames.sort((a, b) => {
+      const roleOrder = ['Werewolf', 'Seer', 'Doctor', 'Villager'];
+      return roleOrder.indexOf(players[a].role) - roleOrder.indexOf(players[b].role);
+    });
+
+    for (const name of sortedPlayers) {
+      const player = players[name];
+      const card = document.createElement('div');
+      card.className = 'player-card';
+
+      const avatar = document.createElement('img');
+      avatar.src = `static/${name}.png`;
+      avatar.className = player.role.toLowerCase();
+
+      const info = document.createElement('div');
+      info.innerHTML = `
+        <div style='font-weight:bold'>${name}</div>
+        <div style='font-size:12px;color:#666'>${player.role}</div>
+        <div style='font-size:11px;color:#999'>${player.model}</div>
+      `;
+
+      card.appendChild(avatar);
+      card.appendChild(info);
+      grid.appendChild(card);
+    }
+
+    overview.appendChild(grid);
+    this.player_container.appendChild(overview);
+  }
+
+  renderTimelineView(events: any[], players: any) {
+    // Clear existing content
+    this.transcript_container.textContent = '';
+
+    const container = document.createElement('div');
+    container.className = 'timeline-container';
+
+    // Timeline header
+    const header = document.createElement('div');
+    header.className = 'timeline-header';
+    header.innerHTML = '<h2>Game Timeline</h2>';
+    container.appendChild(header);
+
+    // Timeline
+    const timeline = document.createElement('div');
+    timeline.className = 'timeline';
+
+    let currentRound = -1;
+
+    for (let i = 0; i < events.length; i++) {
+      const event = events[i];
+
+      // Add round header if new round
+      if (event.round !== currentRound) {
+        currentRound = event.round;
+        const roundHeader = document.createElement('div');
+        roundHeader.className = 'round-header';
+        const phaseIcon = event.phase === 'night' ? '🌙' : '☀️';
+        roundHeader.textContent = `${phaseIcon} Round ${event.round} - ${event.phase === 'night' ? 'Night Phase' : 'Day Phase'}`;
+        timeline.appendChild(roundHeader);
+      }
+
+      // Create timeline event
+      const timelineEvent = document.createElement('div');
+      timelineEvent.className = 'timeline-event';
+
+      // Timeline content
+      const content = document.createElement('div');
+      content.className = 'timeline-content';
+
+      // Player header
+      const eventHeader = document.createElement('div');
+      eventHeader.className = 'timeline-event-header';
+
+      // Create player avatar with fallback
+      const avatar = document.createElement('img');
+      avatar.src = `static/${event.player}.png`;
+      avatar.className = 'timeline-player-avatar';
+      avatar.alt = event.player;
+      const roleColor = this.getRoleColor(players[event.player].role);
+      avatar.style.borderColor = roleColor;
+      avatar.onerror = () => {
+        // Use a simple colored circle as fallback
+        const colors = ['#dc3545', '#28a745', '#007bff', '#ffc107', '#6f42c1', '#fd7e14'];
+        const colorIndex = event.player.charCodeAt(0) % colors.length;
+        avatar.src = `data:image/svg+xml;base64,${btoa(`
+          <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="16" cy="16" r="16" fill="${colors[colorIndex]}"/>
+            <text x="16" y="21" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="12" font-weight="bold">${event.player.charAt(0).toUpperCase()}</text>
+          </svg>
+        `)}`;
+      };
+
+      const playerInfo = document.createElement('div');
+      playerInfo.className = 'timeline-player-info';
+      playerInfo.innerHTML = `
+        <div class="timeline-player-name" style="color:${roleColor}">${event.player}</div>
+        <div class="timeline-player-role">${players[event.player].role}</div>
+      `;
+
+      eventHeader.appendChild(avatar);
+      eventHeader.appendChild(playerInfo);
+      content.appendChild(eventHeader);
+
+      // Action type badge
+      const actionType = document.createElement('div');
+      actionType.className = 'timeline-action-type';
+      actionType.classList.add(`timeline-${event.phase}`);
+      actionType.textContent = this.getActionDisplayName(event.type);
+      content.appendChild(actionType);
+
+      // Reasoning
+      if (event.result && event.result.reasoning) {
+        const reasoning = document.createElement('div');
+        reasoning.className = 'timeline-reasoning';
+        reasoning.textContent = `💭 ${event.result.reasoning}`;
+        content.appendChild(reasoning);
+      }
+
+      // Result/Action
+      if (event.result && typeof event.result === 'object') {
+        for (const key of ['say', 'vote', 'remove', 'investigate', 'protect', 'summary', 'bid']) {
+          if (event.result[key]) {
+            const result = document.createElement('div');
+            result.className = 'timeline-result';
+            const icon = this.getActionIcon(key);
+            result.innerHTML = `${icon} ${this.getActionDisplayName(key)}: ${event.result[key]}`;
+            content.appendChild(result);
+          }
+        }
+      }
+
+      // Details (collapsible)
+      if (event.prompt || event.raw_resp) {
+        const details = document.createElement('details');
+        details.className = 'timeline-details';
+
+        const summary = document.createElement('summary');
+        summary.textContent = '📋 View prompt & response details';
+        details.appendChild(summary);
+
+        if (event.prompt) {
+          const prompt = document.createElement('pre');
+          prompt.textContent = `Prompt:\n${event.prompt}`;
+          details.appendChild(prompt);
+        }
+
+        if (event.raw_resp) {
+          const response = document.createElement('pre');
+          response.textContent = `Response:\n${event.raw_resp}`;
+          details.appendChild(response);
+        }
+
+        content.appendChild(details);
+      }
+
+      // Timeline dot
+      const dot = document.createElement('div');
+      dot.className = 'timeline-dot';
+      dot.classList.add(players[event.player].role.toLowerCase());
+
+      timelineEvent.appendChild(content);
+      timelineEvent.appendChild(dot);
+      timeline.appendChild(timelineEvent);
+    }
+
+    container.appendChild(timeline);
+    this.transcript_container.appendChild(container);
+  }
+
+  getRoleColor(role: string): string {
+    switch(role) {
+      case 'Werewolf': return '#dc3545';  // Red
+      case 'Seer': return '#28a745';      // Green
+      case 'Doctor': return '#007bff';   // Blue
+      case 'Villager': return '#6c757d'; // Gray
+      default: return '#6c757d';
+    }
+  }
+
+  getActionDisplayName(action: string): string {
+    const displayNames: { [key: string]: string } = {
+      'eliminate': '🌙 Night Action: Eliminate',
+      'protect': '🌙 Night Action: Protect',
+      'investigate': '🌙 Night Action: Investigate',
+      'bid': '💰 Bid to Speak',
+      'debate': '🗣️ Debate',
+      'summarize': '📝 Summarize',
+      'vote': '🗳️ Vote',
+      'say': '💬 Say',
+      'remove': '❌ Remove',
+      'summary': '📋 Summary'
+    };
+    return displayNames[action] || action;
+  }
+
+  getActionIcon(action: string): string {
+    const icons: { [key: string]: string } = {
+      'say': '💬',
+      'vote': '🗳️',
+      'remove': '❌',
+      'investigate': '🔍',
+      'protect': '🛡️',
+      'summary': '📋',
+      'bid': '💰'
+    };
+    return icons[action] || '📝';
   }
 }
 

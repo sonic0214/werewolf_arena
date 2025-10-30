@@ -32,7 +32,7 @@ from werewolf.model import State
 from werewolf.model import Villager
 from werewolf.model import WEREWOLF
 from werewolf.model import Werewolf
-from werewolf.config import get_player_names
+from werewolf.config import get_player_names, DEFAULT_THREADS
 
 _RUN_GAME = flags.DEFINE_boolean("run", False, "Runs a single game.")
 _RESUME = flags.DEFINE_boolean("resume", False, "Resumes games.")
@@ -49,7 +49,7 @@ _WEREWOLF_MODELS = flags.DEFINE_list(
 _ARENA = flags.DEFINE_boolean(
     "arena", False, "Only run games using different models for villagers and werewolves"
 )
-_THREADS = flags.DEFINE_integer("threads", 2, "Number of threads to run.")
+_THREADS = flags.DEFINE_integer("threads", DEFAULT_THREADS, "Number of threads to run.")
 
 DEFAULT_WEREWOLF_MODELS = ["flash", "pro1.5"]
 DEFAULT_VILLAGER_MODELS = ["flash", "pro1.5"]
@@ -98,7 +98,7 @@ def initialize_players(
     )
     doctor = Doctor(name=player_names.pop(), model=villager_model)
     werewolves = [
-        Werewolf(name=player_names.pop(), model=werewolf_model) for _ in range(2)
+        Werewolf(name=player_names.pop(), model=werewolf_model) for _ in range(1)
     ]
     villagers = [Villager(name=name, model=villager_model) for name in player_names]
 
@@ -150,6 +150,8 @@ def resume_game(directory: str) -> bool:
         if len(werewolves) == 2:
             werewolves[0].gamestate.other_wolf = werewolves[1].name
             werewolves[1].gamestate.other_wolf = werewolves[0].name
+        elif len(werewolves) == 1:
+            werewolves[0].gamestate.other_wolf = None
     else:
         # Update the GameView for every active player
         werewolves = []
@@ -185,6 +187,8 @@ def resume_game(directory: str) -> bool:
         if len(werewolves) == 2:
             werewolves[0].gamestate.other_wolf = werewolves[1].name
             werewolves[1].gamestate.other_wolf = werewolves[0].name
+        elif len(werewolves) == 1:
+            werewolves[0].gamestate.other_wolf = None
 
     gm = game.GameMaster(state, num_threads=_THREADS.value)
     gm.logs = logs

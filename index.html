@@ -525,6 +525,90 @@
     .seer { color: #10b981; border-color: #10b981; }
     .doctor { color: #3b82f6; border-color: #3b82f6; }
     .villager { color: #6b7280; border-color: #6b7280; }
+
+    /* 游戏控制面板 */
+    .game-controls {
+        display: flex;
+        gap: 10px;
+        padding: 8px 16px;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 8px;
+    }
+
+    .control-btn {
+        background: rgba(59, 130, 246, 0.2);
+        border: 1px solid #3b82f6;
+        color: #93c5fd;
+        padding: 6px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .control-btn:hover {
+        background: rgba(59, 130, 246, 0.3);
+        border-color: #60a5fa;
+        color: #dbeafe;
+    }
+
+    .control-btn:disabled {
+        background: rgba(107, 114, 128, 0.2);
+        border-color: #4b5563;
+        color: #6b7280;
+        cursor: not-allowed;
+    }
+
+    .control-btn.stop-btn {
+        border-color: #ef4444;
+        color: #f87171;
+    }
+
+    .control-btn.stop-btn:hover:not(:disabled) {
+        background: rgba(239, 68, 68, 0.3);
+        border-color: #f87171;
+        color: #fecaca;
+    }
+
+    .control-btn.restart-btn {
+        border-color: #10b981;
+        color: #34d399;
+    }
+
+    .control-btn.restart-btn:hover:not(:disabled) {
+        background: rgba(16, 185, 129, 0.3);
+        border-color: #34d399;
+        color: #a7f3d0;
+    }
+
+    /* 控制面板状态指示器 */
+    .control-status {
+        font-size: 11px;
+        color: #9ca3af;
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #10b981;
+    }
+
+    .status-dot.stopping {
+        background: #f59e0b;
+        animation: pulse 1s infinite;
+    }
+
+    .status-dot.stopped {
+        background: #ef4444;
+    }
 </style>
 
 <body>
@@ -542,6 +626,18 @@
             <div id="game-time" class="time-display">14:30:00</div>
         </div>
         <div class="header-right">
+            <div class="game-controls">
+                <button id="stop-game-btn" class="control-btn stop-btn" title="终止游戏">
+                    ⏹️ 停止
+                </button>
+                <button id="restart-game-btn" class="control-btn restart-btn" title="重新开始">
+                    🔄 重启
+                </button>
+                <div class="control-status">
+                    <span id="status-dot" class="status-dot"></span>
+                    <span id="status-text">运行中</span>
+                </div>
+            </div>
             <div id="live-indicator" class="live-badge">
                 <span class="live-dot"></span>
                 LIVE

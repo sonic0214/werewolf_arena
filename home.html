@@ -217,6 +217,145 @@
             color: white;
             border-color: #667eea;
         }
+
+    /* 游戏管理面板 */
+    .game-management {
+            margin-top: 40px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            backdrop-filter: blur(5px);
+        }
+
+    .game-management h3 {
+            color: #667eea;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+    .games-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+
+    .game-item {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border: 1px solid #e1e5e9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s ease;
+        }
+
+    .game-item:hover {
+            background: white;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+    .game-info {
+            flex: 1;
+        }
+
+    .game-session {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+    .game-details {
+            font-size: 12px;
+            color: #666;
+        }
+
+    .game-status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+    .status-running {
+            background: #d4edda;
+            color: #155724;
+        }
+
+    .status-stopped {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+    .status-completed {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+    .status-initializing {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+    .game-actions {
+            display: flex;
+            gap: 8px;
+            margin-left: 15px;
+        }
+
+    .action-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+    .view-btn {
+            background: #667eea;
+            color: white;
+        }
+
+    .view-btn:hover {
+            background: #5a67d8;
+        }
+
+    .stop-btn {
+            background: #dc3545;
+            color: white;
+        }
+
+    .stop-btn:hover {
+            background: #c82333;
+        }
+
+    .refresh-btn {
+            background: #28a745;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 15px;
+            transition: all 0.2s ease;
+        }
+
+    .refresh-btn:hover {
+            background: #218838;
+        }
+
+    .no-games {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
@@ -268,6 +407,15 @@
                 <li>可自定义游戏参数</li>
                 <li>支持多种AI模型对比</li>
             </ul>
+        </div>
+
+        <!-- 游戏管理面板 -->
+        <div class="game-management">
+            <h3>🎮 游戏管理</h3>
+            <button class="refresh-btn" onclick="refreshGamesList()">🔄 刷新列表</button>
+            <div id="games-list" class="games-list">
+                <div class="no-games">正在加载游戏列表...</div>
+            </div>
         </div>
     </div>
 
@@ -357,6 +505,136 @@
                 startGame();
             }
         });
+
+        // 游戏管理功能
+        let gamesData = [];
+
+        // 页面加载时获取游戏列表
+        document.addEventListener('DOMContentLoaded', function() {
+            refreshGamesList();
+            // 每30秒自动刷新一次游戏列表
+            setInterval(refreshGamesList, 30000);
+        });
+
+        async function refreshGamesList() {
+            const gamesList = document.getElementById('games-list');
+            const refreshBtn = document.querySelector('.refresh-btn');
+
+            try {
+                refreshBtn.disabled = true;
+                refreshBtn.textContent = '🔄 加载中...';
+
+                const response = await fetch('/list-games');
+                const result = await response.json();
+
+                if (result.success) {
+                    gamesData = result.games;
+                    renderGamesList(gamesData);
+                } else {
+                    throw new Error('获取游戏列表失败');
+                }
+            } catch (error) {
+                console.error('获取游戏列表失败:', error);
+                gamesList.innerHTML = '<div class="no-games">❌ 获取游戏列表失败，请重试</div>';
+            } finally {
+                refreshBtn.disabled = false;
+                refreshBtn.textContent = '🔄 刷新列表';
+            }
+        }
+
+        function renderGamesList(games) {
+            const gamesList = document.getElementById('games-list');
+
+            if (!games || games.length === 0) {
+                gamesList.innerHTML = '<div class="no-games">📭 暂无游戏记录</div>';
+                return;
+            }
+
+            const gamesHtml = games.map(game => {
+                const startTime = new Date(game.start_time * 1000);
+                const timeStr = startTime.toLocaleString('zh-CN');
+
+                let statusClass = 'status-initializing';
+                let statusText = '初始化中';
+
+                switch (game.status) {
+                    case 'running':
+                        statusClass = 'status-running';
+                        statusText = '运行中';
+                        break;
+                    case 'stopped':
+                        statusClass = 'status-stopped';
+                        statusText = '已停止';
+                        break;
+                    case 'completed':
+                        statusClass = 'status-completed';
+                        statusText = '已完成';
+                        break;
+                    case 'initializing':
+                        statusClass = 'status-initializing';
+                        statusText = '初始化中';
+                        break;
+                }
+
+                return `
+                    <div class="game-item">
+                        <div class="game-info">
+                            <div class="game-session">游戏 ${game.session_id}</div>
+                            <div class="game-details">
+                                村民: ${game.v_model} | 狼人: ${game.w_model}<br>
+                                开始时间: ${timeStr}
+                                ${game.winner ? `<br>获胜者: ${game.winner}` : ''}
+                            </div>
+                        </div>
+                        <div class="game-status ${statusClass}">${statusText}</div>
+                        <div class="game-actions">
+                            <button class="action-btn view-btn" onclick="viewGame('${game.session_id}')">
+                                👁️ 观看
+                            </button>
+                            ${game.status === 'running' || game.status === 'initializing' ?
+                                `<button class="action-btn stop-btn" onclick="stopGameFromList('${game.session_id}')">
+                                    ⏹️ 停止
+                                </button>` : ''
+                            }
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            gamesList.innerHTML = gamesHtml;
+        }
+
+        function viewGame(sessionId) {
+            window.open(`/index_live.html?session_id=${sessionId}`, '_blank');
+        }
+
+        async function stopGameFromList(sessionId) {
+            if (!confirm('确定要停止这个游戏吗？游戏将在完成当前轮次后优雅停止。')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/stop-game/${sessionId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('✅ 游戏停止请求已发送');
+                    // 刷新游戏列表
+                    setTimeout(refreshGamesList, 1000);
+                } else {
+                    alert(`❌ 停止游戏失败: ${result.error}`);
+                }
+            } catch (error) {
+                console.error('停止游戏失败:', error);
+                alert(`❌ 停止游戏失败: ${error.message}`);
+            }
+        }
     </script>
 </body>
 </html>

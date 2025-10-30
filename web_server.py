@@ -30,6 +30,12 @@ CORS(app)  # 允许跨域请求
 # 存储正在运行的游戏
 running_games = {}
 
+# 存储游戏线程对象，用于终止操作
+game_threads = {}
+
+# 存储GameMaster实例，用于控制游戏
+game_masters = {}
+
 def run_game_standalone(werewolf_model: str, villager_model: str, num_threads: int = DEFAULT_THREADS):
     """独立运行游戏函数，不依赖absl flags"""
 
@@ -225,14 +231,42 @@ def start_game():
         # 在后台线程中启动游戏
         def run_game_thread():
             try:
-                # 使用独立的游戏运行函数（不依赖absl flags），传递预生成的log_directory
-                winner = run_game_with_directory(
-                    werewolf_model=w_model,
-                    villager_model=v_model,
-                    num_threads=DEFAULT_THREADS,
-                    log_directory=log_directory,
-                    session_id=session_id
+                # 创建GameMaster实例并保存
+                from werewolf import game as game_module
+                from werewolf.model import State, Doctor, Seer, Villager, Werewolf
+                from werewolf.runner import initialize_players
+
+                # 初始化玩家
+                seer, doctor, villagers, werewolves = initialize_players(
+                    model_to_id.get(v_model, v_model),
+                    model_to_id.get(w_model, w_model)
                 )
+
+                # 创建状态
+                state = State(
+                    villagers=villagers,
+                    werewolves=werewolves,
+                    seer=seer,
+                    doctor=doctor,
+                    session_id=session_id,
+                )
+
+                def _save_progress(state: State, logs):
+                    logging.save_game(state, logs, log_directory)
+
+                # 创建GameMaster实例
+                gamemaster = game_module.GameMaster(
+                    state, num_threads=DEFAULT_THREADS, on_progress=_save_progress
+                )
+
+                # 保存GameMaster实例引用
+                game_masters[session_id] = gamemaster
+
+                # 初始保存
+                _save_progress(state, gamemaster.logs)
+
+                # 运行游戏
+                winner = gamemaster.run_game()
 
                 print(f"Game {session_id} completed. Log directory: {log_directory}")
                 print(f"View at: http://localhost:8081/index_live.html?session_id={session_id}")
@@ -254,6 +288,9 @@ def start_game():
         # 启动游戏线程
         game_thread = threading.Thread(target=run_game_thread, daemon=True)
         game_thread.start()
+
+        # 保存线程引用
+        game_threads[session_id] = game_thread
 
         # 立即返回session_id
         return jsonify({
@@ -283,11 +320,6 @@ def game_status(session_id):
 
     game_info = running_games[session_id]
 
-    # 检查游戏进程是否还在运行
-    if game_info['process'] and game_info['process'].poll() is not None:
-        if game_info['status'] == 'running':
-            game_info['status'] = 'completed'
-
     return jsonify({
         'success': True,
         'session_id': session_id,
@@ -297,6 +329,59 @@ def game_status(session_id):
         'start_time': game_info['start_time'],
         'error': game_info.get('error', None)
     })
+
+@app.route('/stop-game/<session_id>', methods=['POST'])
+def stop_game(session_id):
+    """终止游戏"""
+    try:
+        if session_id not in running_games:
+            return jsonify({
+                'success': False,
+                'error': 'Game not found'
+            }), 404
+
+        game_info = running_games[session_id]
+
+        # 检查游戏状态
+        if game_info['status'] in ['completed', 'stopped', 'error']:
+            return jsonify({
+                'success': False,
+                'error': f'Game already {game_info["status"]}'
+            }), 400
+
+        # 更新游戏状态为停止中
+        game_info['status'] = 'stopping'
+
+        # 优雅终止：调用GameMaster的停止方法
+        if session_id in game_masters:
+            gamemaster = game_masters[session_id]
+            gamemaster.stop()
+            print(f"Stop signal sent to game {session_id}")
+
+        # 清理线程引用
+        if session_id in game_threads:
+            del game_threads[session_id]
+
+        # 清理GameMaster引用
+        if session_id in game_masters:
+            del game_masters[session_id]
+
+        # 更新最终状态
+        game_info['status'] = 'stopped'
+        game_info['stop_time'] = time.time()
+
+        return jsonify({
+            'success': True,
+            'message': 'Game stop request sent. The game will finish the current round and stop gracefully.',
+            'session_id': session_id,
+            'final_status': 'stopped'
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 @app.route('/list-games')
 def list_games():

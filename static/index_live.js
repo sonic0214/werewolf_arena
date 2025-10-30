@@ -28,10 +28,12 @@ class WerewolfLiveStream {
         this.url = new URLSearchParams(window.location.search);
         this.sessionId = this.url.get('session_id') || '';
         this.lastDataHash = null; // 用于检测数据变化
+        this.gameStatus = 'unknown'; // 游戏状态: unknown, running, stopping, stopped, completed, error
         if (this.sessionId.length == 0)
             throw new Error('No session specified');
         this.initializeEventListeners();
         this.startClock();
+        this.startGameStatusPolling(); // 开始轮询游戏状态
     }
     initializeEventListeners() {
         // 关闭调试面板
@@ -43,6 +45,23 @@ class WerewolfLiveStream {
                     debugPanel.classList.add('hidden');
             });
         }
+
+        // 游戏控制按钮事件
+        const stopBtn = document.getElementById('stop-game-btn');
+        const restartBtn = document.getElementById('restart-game-btn');
+
+        if (stopBtn) {
+            stopBtn.addEventListener('click', () => {
+                this.stopGame();
+            });
+        }
+
+        if (restartBtn) {
+            restartBtn.addEventListener('click', () => {
+                this.restartGame();
+            });
+        }
+
         // 点击消息显示调试信息
         document.addEventListener('click', (e) => {
             const target = e.target;
@@ -542,28 +561,52 @@ class WerewolfLiveStream {
         }
     }
     displayVotingResults(votes, timestamp) {
+        console.log('处理投票结果:', votes);
+
         // 统计投票结果
         const voteCount = {};
         const totalVotes = votes.length;
+
+        if (totalVotes === 0) {
+            console.log('没有投票数据，跳过显示投票结果');
+            return;
+        }
+
         votes.forEach((vote) => {
             const target = vote.log?.result?.vote || 'unknown';
             voteCount[target] = (voteCount[target] || 0) + 1;
         });
+
+        console.log('统计后的投票数据:', { voteCount, totalVotes });
+
         // 显示投票结果
         const resultMessage = `📊 投票结果：${Object.entries(voteCount)
             .map(([target, count]) => `${target} (${count}票)`)
             .join(', ')}`;
         this.addSystemMessage(resultMessage, timestamp);
+
         // 在右侧面板显示详细统计
         this.showVotingChart(voteCount, totalVotes);
     }
     showVotingChart(voteCount, totalVotes) {
         const chartContainer = document.getElementById('vote-chart');
         const votingPanel = document.getElementById('voting-results');
-        if (!chartContainer || !votingPanel)
+        if (!chartContainer || !votingPanel) {
+            console.warn('投票统计容器未找到');
             return;
+        }
+
+        console.log('显示投票统计:', { voteCount, totalVotes });
+
         votingPanel.classList.remove('hidden');
         chartContainer.innerHTML = '';
+
+        // 如果没有投票数据，显示提示信息
+        if (Object.keys(voteCount).length === 0) {
+            chartContainer.innerHTML = '<div style="color: #9ca3af; text-align: center; padding: 20px;">暂无投票数据</div>';
+            return;
+        }
+
         Object.entries(voteCount).forEach(([target, count]) => {
             const percentage = (count / totalVotes) * 100;
             const voteItem = document.createElement('div');
@@ -611,6 +654,158 @@ ${JSON.stringify(message.data, null, 2)}
     `;
         debugPanel.classList.remove('hidden');
     }
+
+    // 测试投票统计显示功能
+    testVotingChart() {
+        console.log('测试投票统计显示');
+        const mockVoteCount = {
+            'Alice': 3,
+            'Bob': 2,
+            'Charlie': 1
+        };
+        const totalVotes = 6;
+        this.showVotingChart(mockVoteCount, totalVotes);
+    }
+
+    // 游戏控制相关方法
+    async stopGame() {
+        if (!this.sessionId) return;
+
+        const stopBtn = document.getElementById('stop-game-btn');
+        const statusText = document.getElementById('status-text');
+        const statusDot = document.getElementById('status-dot');
+
+        try {
+            stopBtn.disabled = true;
+            stopBtn.textContent = '⏹️ 停止中...';
+            statusText.textContent = '停止中';
+            statusDot.className = 'status-dot stopping';
+
+            const response = await fetch(`/stop-game/${this.sessionId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                this.gameStatus = 'stopped';
+                statusText.textContent = '已停止';
+                statusDot.className = 'status-dot stopped';
+                stopBtn.textContent = '⏹️ 已停止';
+
+                // 添加系统消息
+                this.addSystemMessage('🛑 游戏已被用户停止');
+
+                // 停止数据更新
+                this.isLive = false;
+
+                // 更新LIVE指示器
+                const liveIndicator = document.getElementById('live-indicator');
+                if (liveIndicator) {
+                    liveIndicator.style.display = 'none';
+                }
+            } else {
+                throw new Error(result.error || '停止游戏失败');
+            }
+        } catch (error) {
+            console.error('停止游戏失败:', error);
+            statusText.textContent = '停止失败';
+            stopBtn.disabled = false;
+            stopBtn.textContent = '⏹️ 停止';
+
+            // 显示错误消息
+            this.addSystemMessage(`❌ 停止游戏失败: ${error.message}`);
+        }
+    }
+
+    async restartGame() {
+        // 重新开始游戏 - 跳转到主页
+        if (confirm('确定要重新开始游戏吗？这将跳转到主页创建新游戏。')) {
+            window.location.href = '/home.html';
+        }
+    }
+
+    startGameStatusPolling() {
+        // 每5秒检查一次游戏状态
+        setInterval(async () => {
+            await this.checkGameStatus();
+        }, 5000);
+    }
+
+    async checkGameStatus() {
+        if (!this.sessionId) return;
+
+        try {
+            const response = await fetch(`/game-status/${this.sessionId}`);
+            const result = await response.json();
+
+            if (result.success) {
+                this.updateGameControls(result.status);
+            }
+        } catch (error) {
+            console.error('检查游戏状态失败:', error);
+        }
+    }
+
+    updateGameControls(status) {
+        const stopBtn = document.getElementById('stop-game-btn');
+        const restartBtn = document.getElementById('restart-game-btn');
+        const statusText = document.getElementById('status-text');
+        const statusDot = document.getElementById('status-dot');
+
+        if (!stopBtn || !statusText || !statusDot) return;
+
+        this.gameStatus = status;
+
+        switch (status) {
+            case 'initializing':
+                statusText.textContent = '初始化中';
+                statusDot.className = 'status-dot';
+                stopBtn.disabled = false;
+                stopBtn.textContent = '⏹️ 停止';
+                break;
+            case 'running':
+                statusText.textContent = '运行中';
+                statusDot.className = 'status-dot';
+                stopBtn.disabled = false;
+                stopBtn.textContent = '⏹️ 停止';
+                this.isLive = true;
+                break;
+            case 'stopping':
+                statusText.textContent = '停止中';
+                statusDot.className = 'status-dot stopping';
+                stopBtn.disabled = true;
+                stopBtn.textContent = '⏹️ 停止中...';
+                break;
+            case 'stopped':
+                statusText.textContent = '已停止';
+                statusDot.className = 'status-dot stopped';
+                stopBtn.disabled = true;
+                stopBtn.textContent = '⏹️ 已停止';
+                this.isLive = false;
+                break;
+            case 'completed':
+                statusText.textContent = '已完成';
+                statusDot.className = 'status-dot';
+                stopBtn.disabled = true;
+                stopBtn.textContent = '⏹️ 已完成';
+                this.isLive = false;
+                break;
+            case 'error':
+                statusText.textContent = '错误';
+                statusDot.className = 'status-dot stopped';
+                stopBtn.disabled = true;
+                stopBtn.textContent = '⏹️ 错误';
+                this.isLive = false;
+                break;
+            default:
+                statusText.textContent = '未知';
+                statusDot.className = 'status-dot';
+        }
+    }
 }
 // 初始化直播流
 let liveStream;
@@ -634,3 +829,14 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.innerHTML = '<div style="color: white; text-align: center; margin-top: 100px;">加载失败，请检查游戏会话ID是否正确</div>';
     }
 });
+
+// 添加全局测试函数，方便在控制台中使用
+window.testVotingChart = function() {
+    if (liveStream) {
+        liveStream.testVotingChart();
+    } else {
+        console.error('直播流未初始化');
+    }
+};
+
+console.log('投票统计测试功能已加载。使用 testVotingChart() 来测试投票统计显示。');

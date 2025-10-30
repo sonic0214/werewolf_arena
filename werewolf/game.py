@@ -48,6 +48,7 @@ class GameMaster:
     self.num_threads = num_threads
     self.logs: List[RoundLog] = []
     self.on_progress = on_progress
+    self.should_stop = False  # 添加停止标志
 
   def _progress(self) -> None:
     if self.on_progress:
@@ -390,11 +391,23 @@ class GameMaster:
       tqdm.tqdm.write(f"The winner is {self.state.winner}!")
       self._progress()
 
+  def stop(self):
+    """设置停止标志，让游戏优雅终止"""
+    self.should_stop = True
+    tqdm.tqdm.write("Game stop requested, will finish current round and exit gracefully.")
+
   def run_game(self) -> str:
     """Run the entire Werewolf game and return the winner."""
-    while not self.state.winner:
+    while not self.state.winner and not self.should_stop:
       tqdm.tqdm.write(f"STARTING ROUND: {self.current_round_num}")
       self.run_round()
+
+      # 检查是否在轮次之间收到停止信号
+      if self.should_stop:
+        tqdm.tqdm.write("Game stopped by user request between rounds.")
+        self.state.winner = "Game Stopped"
+        break
+
       for name in self.this_round.players:
         if self.state.players[name].gamestate:
           self.state.players[name].gamestate.round_number = (
@@ -403,5 +416,8 @@ class GameMaster:
           self.state.players[name].gamestate.clear_debate()
       self.current_round_num += 1
 
-    tqdm.tqdm.write("Game is complete!")
+    if self.should_stop:
+      tqdm.tqdm.write("Game stopped by user request!")
+    else:
+      tqdm.tqdm.write("Game is complete!")
     return self.state.winner

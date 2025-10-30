@@ -15,7 +15,7 @@
 from openai import OpenAI
 import os
 
-from typing import Any
+from typing import Any, Optional, Dict
 import google
 import vertexai
 from vertexai.preview import generative_models
@@ -23,6 +23,17 @@ from anthropic import AnthropicVertex
 
 
 def generate(model, **kwargs):
+    # Route OpenRouter models explicitly when prefixed with "openrouter/"
+    if model.startswith("openrouter/"):
+        # OpenRouter expects slugs like "anthropic/claude-3.5-sonnet"
+        or_model = model.replace("openrouter/", "", 1)
+        return generate_openrouter(or_model, **kwargs)
+
+    # Route GLM (ZhipuAI) models when prefixed with "glm/"
+    if model.startswith("glm/"):
+        glm_model = model.replace("glm/", "", 1)
+        return generate_glm(glm_model, **kwargs)
+
     if "gpt" in model:
         return generate_openai(model, **kwargs)
     elif "claude" in model:
@@ -48,6 +59,72 @@ def generate_openai(model: str, prompt: str, json_mode: bool = True, **kwargs):
     return txt
 
 
+# openrouter (OpenAI-compatible client)
+def generate_openrouter(
+    model: str,
+    prompt: str,
+    json_mode: bool = True,
+    **kwargs,
+):
+    base_url = os.environ.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+    api_key = os.environ.get("OPENROUTER_API_KEY")
+    if not api_key:
+        raise RuntimeError("Missing OPENROUTER_API_KEY environment variable")
+
+    default_headers = {}
+    # Optional but recommended headers for OpenRouter analytics/routing
+    referer = os.environ.get("OPENROUTER_REFERRER")
+    app_title = os.environ.get("OPENROUTER_APP_TITLE", "Werewolf Arena")
+    if referer:
+        default_headers["HTTP-Referer"] = referer
+    if app_title:
+        default_headers["X-Title"] = app_title
+
+    client = OpenAI(
+        base_url=base_url,
+        api_key=api_key,
+        default_headers=default_headers or None,
+    )
+
+    response_format = {"type": "text"}
+    if json_mode:
+        response_format = {"type": "json_object"}
+    response = client.chat.completions.create(
+        messages=[{"role": "user", "content": prompt}],
+        response_format=response_format,
+        model=model,
+    )
+    return response.choices[0].message.content
+
+
+# zhipu/glm via OpenAI-compatible endpoint
+def generate_glm(
+    model: str,
+    prompt: str,
+    json_mode: bool = True,
+    **kwargs,
+):
+    base_url = os.environ.get("GLM_BASE_URL", "https://open.bigmodel.cn/api/paas/v4")
+    api_key = os.environ.get("GLM_API_KEY") or os.environ.get("ZHIPU_API_KEY")
+    if not api_key:
+        raise RuntimeError("Missing GLM_API_KEY (or ZHIPU_API_KEY) environment variable")
+
+    client = OpenAI(
+        base_url=base_url,
+        api_key=api_key,
+    )
+
+    response_format = {"type": "text"}
+    if json_mode:
+        response_format = {"type": "json_object"}
+    response = client.chat.completions.create(
+        messages=[{"role": "user", "content": prompt}],
+        response_format=response_format,
+        model=model,
+    )
+    return response.choices[0].message.content
+
+
 # anthropic
 def generate_authropic(model: str, prompt: str, **kwargs):
     # For local development, run `gcloud auth application-default login` first to
@@ -69,7 +146,7 @@ def generate_vertexai(
     prompt: str,
     temperature: float = 0.7,
     json_mode: bool = True,
-    json_schema: dict[str, Any] | None = None,
+    json_schema: Optional[Dict[str, Any]] = None,
     **kwargs,
 ) -> str:
     """Generates text content using Vertex AI."""

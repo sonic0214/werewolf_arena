@@ -14,14 +14,14 @@
 
 """utility functions."""
 
-from typing import Any
+from typing import Any, Dict, Optional
 import yaml
 from abc import ABC
 from abc import abstractmethod
 import marko
 
 
-def parse_json(text: str) -> dict[str, Any] | None:
+def parse_json(text: str) -> Optional[Any]:
     result_json = parse_json_markdown(text)
 
     if not result_json:
@@ -29,7 +29,7 @@ def parse_json(text: str) -> dict[str, Any] | None:
     return result_json
 
 
-def parse_json_markdown(text: str) -> dict[str, Any] | None:
+def parse_json_markdown(text: str) -> Optional[Any]:
     ast = marko.parse(text)
 
     for c in ast.children:
@@ -41,7 +41,7 @@ def parse_json_markdown(text: str) -> dict[str, Any] | None:
     return None
 
 
-def parse_json_str(text: str) -> dict[str, Any] | None:
+def parse_json_str(text: str) -> Optional[Any]:
     try:
         # use yaml.safe_load which handles missing quotes around field names.
         result_json = yaml.safe_load(text)

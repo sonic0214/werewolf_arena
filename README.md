@@ -25,6 +25,33 @@ export OPENAI_API_KEY=<your api key>
 ```
 The program will read from this environment variable.
 
+### (Optional) Use OpenRouter for multiple vendors via OpenAI-compatible API
+Set these to route any model whose id starts with `openrouter/` through OpenRouter:
+```
+export OPENROUTER_API_KEY=<your openrouter api key>
+# Optional but recommended for analytics/routing on OpenRouter
+export OPENROUTER_REFERRER=https://your.site.or.repo
+export OPENROUTER_APP_TITLE="Werewolf Arena"
+```
+Example CLI (villagers use Claude 3.5 Sonnet via OpenRouter, werewolves use GPT-4o via OpenRouter):
+```
+python3 main.py --run --v_models=or-sonnet --w_models=or-gpt4o
+```
+You can add more aliases in `werewolf/runner.py` `model_to_id` mapping, pointing to
+OpenRouter slugs like `openrouter/anthropic/claude-3.5-sonnet` or `openrouter/openai/gpt-4o-2024-08-06`.
+
+### (Optional) Use ZhipuAI GLM API (native)
+Set these to route any model whose id starts with `glm/` through GLM's OpenAI-compatible API:
+```
+export GLM_API_KEY=<your zhipu/glm api key>
+# Optional: override base url if needed
+export GLM_BASE_URL=https://open.bigmodel.cn/api/paas/v4
+```
+Example CLI:
+```
+python3 main.py --run --v_models=glm4-air --w_models=glm4
+```
+
 ### Set up GCP for using Gemini
  - [Install the gcloud cli](https://cloud.google.com/sdk/docs/install)
  - Authenticate and set your GCP project

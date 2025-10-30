@@ -17,7 +17,7 @@
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 import random
-from typing import List
+from typing import List, Optional, Callable
 
 import tqdm
 
@@ -37,6 +37,7 @@ class GameMaster:
       self,
       state: State,
       num_threads: int = 1,
+      on_progress: Optional[Callable[[State, List[RoundLog]], None]] = None,
   ) -> None:
     """Initialize the Werewolf game.
 
@@ -46,6 +47,11 @@ class GameMaster:
     self.current_round_num = len(self.state.rounds) if self.state.rounds else 0
     self.num_threads = num_threads
     self.logs: List[RoundLog] = []
+    self.on_progress = on_progress
+
+  def _progress(self) -> None:
+    if self.on_progress:
+      self.on_progress(self.state, self.logs)
 
   @property
   def this_round(self) -> Round:
@@ -74,6 +80,7 @@ class GameMaster:
         )
     else:
       raise ValueError("Eliminate did not return a valid player.")
+    self._progress()
 
   def protect(self):
     """Doctor chooses a player to protect."""
@@ -88,6 +95,7 @@ class GameMaster:
       tqdm.tqdm.write(f"{self.state.doctor.name} protected {protect}")
     else:
       raise ValueError("Protect did not return a valid player.")
+    self._progress()
 
   def unmask(self):
     """Seer chooses a player to unmask."""
@@ -102,6 +110,7 @@ class GameMaster:
       self.state.seer.reveal_and_update(unmask, self.state.players[unmask].role)
     else:
       raise ValueError("Unmask function did not return a valid player.")
+    self._progress()
 
   def _get_bid(self, player_name):
     """Gets the bid for a specific player."""
@@ -166,6 +175,7 @@ class GameMaster:
         summary, log = summary_task.result()
         tqdm.tqdm.write(f"{player_name} summary: {summary}")
         self.this_round_log.summaries.append((player_name, log))
+        self._progress()
 
   def run_day_phase(self):
     """Run the day phase which consists of the debate and voting."""
@@ -185,6 +195,7 @@ class GameMaster:
       self.this_round_log.debate.append((next_speaker, log))
       self.this_round.debate.append([next_speaker, dialogue])
       tqdm.tqdm.write(f"{next_speaker} ({player.role}): {dialogue}")
+      self._progress()
 
       for name in self.this_round.players:
         player = self.state.players[name]
@@ -197,6 +208,7 @@ class GameMaster:
         votes, vote_logs = self.run_voting()
         self.this_round.votes.append(votes)
         self.this_round_log.votes.append(vote_logs)
+        self._progress()
 
     for player, vote in self.this_round.votes[-1].items():
       tqdm.tqdm.write(f"{player} voted to remove {vote}")
@@ -254,6 +266,7 @@ class GameMaster:
       player.add_announcement(announcement)
 
     tqdm.tqdm.write(announcement)
+    self._progress()
 
   def resolve_night_phase(self):
     """Resolve elimination and protection during the night phase."""
@@ -273,6 +286,7 @@ class GameMaster:
       if player.gamestate:
         player.gamestate.remove_player(self.this_round.eliminated)
       player.add_announcement(announcement)
+    self._progress()
 
   def run_round(self):
     """Run a single round of the game."""
@@ -301,6 +315,8 @@ class GameMaster:
     ]:
       tqdm.tqdm.write(message)
       action()
+      # Save progress after each major action in the round
+      self._progress()
 
       if self.state.winner:
         tqdm.tqdm.write(f"Round {self.current_round_num} is complete.")
@@ -309,6 +325,7 @@ class GameMaster:
 
     tqdm.tqdm.write(f"Round {self.current_round_num} is complete.")
     self.this_round.success = True
+    self._progress()
 
   def get_winner(self) -> str:
     """Determine the winner of the game."""
@@ -325,6 +342,7 @@ class GameMaster:
     self.state.winner = self.get_winner()
     if self.state.winner:
       tqdm.tqdm.write(f"The winner is {self.state.winner}!")
+      self._progress()
 
   def run_game(self) -> str:
     """Run the entire Werewolf game and return the winner."""

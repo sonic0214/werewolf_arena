@@ -26,24 +26,28 @@ class Demo {
   }
 
   async retrieve_data() {
-    // game log
-    const logs_response = await fetch(`http://localhost:8080/logs/${this.session_id}/game_logs.json`);
+    // game log (use relative URL to avoid cross-origin issues between localhost and 127.0.0.1)
+    const logs_response = await fetch(`/logs/${this.session_id}/game_logs.json`);
     const logs = await logs_response.json();
     console.log("logs", logs)
 
 
     // game state
-    let state_response = await fetch(`http://localhost:8080/logs/${this.session_id}/game_complete.json`);
+    let state_response = await fetch(`/logs/${this.session_id}/game_complete.json`);
 
     if (state_response.status == 404) {
-      state_response = await fetch(`http://localhost:8080/logs/${this.session_id}/game_partial.json`);
+      state_response = await fetch(`/logs/${this.session_id}/game_partial.json`);
       console.log("loaded partial file because game_complete.json is not available.")
     }
     const state = await state_response.json();
     console.log("state", state)
 
     this.data = { logs: logs, state: state };
-    for (let i = 0; i < this.data['logs'].length; i++) {
+    // Reset UI before each render to support live refresh
+    uiManager.reset();
+    // Only render rounds that exist in both logs and state
+    const roundsToRender = Math.min(this.data['logs'].length, this.data['state']['rounds'].length);
+    for (let i = 0; i < roundsToRender; i++) {
       this.process_logs(
         this.data['logs'][i],
         this.data['state']['rounds'][i],
@@ -635,8 +639,21 @@ class UIManager {
       return 'Villager';
     }
   }
+
+  reset() {
+    // Clear containers to re-render from scratch on each poll
+    this.player_container.textContent = '';
+    this.transcript_container.textContent = '';
+    this.debug_container.textContent = '';
+    this.active_element = null;
+  }
 }
 
 let demo = new Demo();
 let uiManager = new UIManager();
+// Initial render
 demo.retrieve_data();
+// Poll every 2 seconds for live updates
+setInterval(() => {
+  demo.retrieve_data();
+}, 2000);

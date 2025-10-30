@@ -62,6 +62,24 @@ model_to_id = {
     "gpt4": "gpt-4-turbo-2024-04-09",
     "gpt4o": "gpt-4o-2024-05-13",
     "gpt3.5": "gpt-3.5-turbo-0125",
+    # OpenRouter examples (customize or add your own)
+    # Anthropic Claude 3.5 Sonnet via OpenRouter
+    "or-sonnet": "openrouter/anthropic/claude-3.5-sonnet",
+    # OpenAI GPT-4o via OpenRouter
+    "or-gpt4o": "openrouter/openai/gpt-4o-2024-08-06",
+    # User added OpenRouter free-tier models
+    "or-glm45-free": "openrouter/z-ai/glm-4.5-air:free",
+    "or-deepseek-r1-free": "openrouter/deepseek/deepseek-r1-0528:free",
+    "or-qwen3-235b-free": "openrouter/qwen/qwen3-235b-a22b:free",
+    "or-gemini-2-flash-exp-free": "openrouter/google/gemini-2.0-flash-exp:free",
+    "or-minimax-m2-free": "openrouter/minimax/minimax-m2:free",
+    # Native GLM (ZhipuAI) via GLM API (set GLM_API_KEY)
+    "glm4": "glm/glm-4",
+    "glm4-air": "glm/glm-4-air",
+    "glm4-flash": "glm/glm-4-flash",
+    "glm45-flash": "glm/glm-4.5-flash",
+    # GLM Z1 series
+    "glmz1-flash": "glm/GLM-Z1-Flash",
 }
 
 
@@ -213,7 +231,9 @@ def run_game(
     seer, doctor, villagers, werewolves = initialize_players(
         villager_model, werewolf_model
     )
-    session_id = "10"  # You might want to make this unique per game
+    # Prepare session directory and progress-saving callback for real-time viewing
+    log_directory = logging.log_directory()
+    session_id = os.path.basename(log_directory)
     state = State(
         villagers=villagers,
         werewolves=werewolves,
@@ -222,7 +242,14 @@ def run_game(
         session_id=session_id,
     )
 
-    gamemaster = game.GameMaster(state, num_threads=_THREADS.value)
+    def _save_progress(state: State, logs):
+        logging.save_game(state, logs, log_directory)
+
+    gamemaster = game.GameMaster(
+        state, num_threads=_THREADS.value, on_progress=_save_progress
+    )
+    # Initial save so the viewer can attach immediately
+    _save_progress(state, gamemaster.logs)
     winner = None
     try:
         winner = gamemaster.run_game()
@@ -230,9 +257,9 @@ def run_game(
         state.error_message = traceback.format_exc()
         print(f"Error encountered during game: {e}")
 
-    log_directory = logging.log_directory()
     logging.save_game(state, gamemaster.logs, log_directory)
     print(f"Game logs saved to: {log_directory}")
+    print(f"View in browser: http://localhost:8081/?session_id={session_id}")
 
     return winner, log_directory
 

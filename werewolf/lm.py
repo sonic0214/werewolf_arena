@@ -78,10 +78,19 @@ def generate(
                 disable_safety_check=True,
             )
             result = utils.parse_json(raw_resp)
+            # Some models may return a top-level array; coerce to a dict
+            if isinstance(result, list):
+                # Prefer first dict element if present; otherwise wrap
+                first_dict = next((it for it in result if isinstance(it, dict)), None)
+                result = first_dict if first_dict is not None else {"value": result}
             log = LmLog(prompt=prompt, raw_resp=raw_resp, result=result)
 
-            if result and result_key:
-                result = result.get(result_key)
+            if result_key:
+                if isinstance(result, dict):
+                    result = result.get(result_key)
+                else:
+                    # Non-dict result cannot be keyed; force mismatch to trigger retry
+                    result = None
 
             if allowed_values is None or result in allowed_values:
                 return result, log
@@ -89,7 +98,8 @@ def generate(
         except Exception as e:
             print(f"Retrying due to Exception: {e}")
         temperature = min(1.0, temperature + 0.2)
-        raw_responses.append(raw_resp)
+        # Guard against None values to avoid join errors later
+        raw_responses.append(raw_resp if isinstance(raw_resp, str) else "")
 
     return None, LmLog(
         prompt=prompt, raw_resp="-------".join(raw_responses), result=None

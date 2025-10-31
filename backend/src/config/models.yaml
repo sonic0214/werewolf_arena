@@ -1,0 +1,78 @@
+# 模型配置文件
+# Model Configuration
+
+models:
+  # GLM系列（推荐）
+  glmz1-flash:
+    provider: glm
+    model_name: GLM-Z1-Flash
+    enabled: true
+    description: "智谱AI最新快速模型，性价比高"
+
+  glm45-flash:
+    provider: glm
+    model_name: GLM-4.5-Flash
+    enabled: true
+    description: "智谱AI 4.5 Flash版本"
+
+  glm4-air:
+    provider: glm
+    model_name: GLM-4-Air
+    enabled: true
+    description: "智谱AI 4 Air版本"
+
+  glm4:
+    provider: glm
+    model_name: GLM-4
+    enabled: true
+    description: "智谱AI 4标准版本"
+
+  # OpenAI系列
+  gpt4o:
+    provider: openai
+    model_name: gpt-4o
+    enabled: false
+    description: "OpenAI GPT-4o"
+
+  gpt4:
+    provider: openai
+    model_name: gpt-4-turbo-2024-04-09
+    enabled: false
+    description: "OpenAI GPT-4 Turbo"
+
+  gpt3.5:
+    provider: openai
+    model_name: gpt-3.5-turbo-0125
+    enabled: false
+    description: "OpenAI GPT-3.5 Turbo"
+
+  # OpenRouter系列
+  or-sonnet:
+    provider: openrouter
+    model_name: anthropic/claude-3.5-sonnet
+    enabled: false
+    description: "Claude 3.5 Sonnet via OpenRouter"
+
+  or-gpt4o:
+    provider: openrouter
+    model_name: openai/gpt-4o-2024-08-06
+    enabled: false
+    description: "GPT-4o via OpenRouter"
+
+  or-glm45-free:
+    provider: openrouter
+    model_name: z-ai/glm-4.5-air:free
+    enabled: false
+    description: "GLM 4.5 Air Free via OpenRouter"
+
+  or-deepseek-r1-free:
+    provider: openrouter
+    model_name: deepseek/deepseek-r1-0528:free
+    enabled: false
+    description: "DeepSeek R1 Free via OpenRouter"
+
+# 模型别名映射（兼容旧代码）
+aliases:
+  flash: glm45-flash
+  pro1.5: glm4
+  pro: glm4

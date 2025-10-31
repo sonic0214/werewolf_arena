@@ -1,0 +1,230 @@
+INFO:     Will watch for changes in these directories: ['/Users/admin/Project/werewolf_arena/backend']
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+INFO:     Started reloader process [6669] using WatchFiles
+INFO:     Started server process [6690]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+✅ 已加载延迟配置: /Users/admin/Project/werewolf_arena/backend/src/config/timing_config.yaml
+🚀 Starting Werewolf Arena API...
+📝 Environment: development
+🔧 Debug mode: False
+🤖 LLM Providers Health: {'glm': True}
+✅ Global LLM client initialized successfully
+🎮 Ready to start games!
+INFO:     127.0.0.1:58407 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58358 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58481 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58537 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58590 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58655 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58690 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58748 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58800 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58923 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59008 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59021 - "GET /api/v1/games/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59043 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59021 - "OPTIONS /api/v1/games/start HTTP/1.1" 200 OK
+Model conversion: glmz1-flash -> glm/GLM-Z1-Flash
+Model conversion: glmz1-flash -> glm/GLM-Z1-Flash
+🎮 应用游戏模式 normal，延迟倍数: 1.0x
+🎮 游戏模式: normal (延迟倍数: 1.0x)
+INFO:     127.0.0.1:59021 - "POST /api/v1/games/start HTTP/1.1" 201 Created
+STARTING ROUND: 0
+The Werewolves are picking someone to remove from the game.
+INFO:     127.0.0.1:59021 - "GET /api/v1/games/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59021 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59183 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59021 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+Sam eliminated Derek
+The Doctor is protecting someone.
+INFO:     127.0.0.1:59021 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59021 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59262 - "GET /health HTTP/1.1" 200 OK
+Scott protected Sam
+The Seer is investigating someone.
+INFO:     127.0.0.1:59021 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59021 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59021 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59317 - "GET /health HTTP/1.1" 200 OK
+
+Player Derek not in current players: ['Tyler', 'Scott', 'Sam', 'Jacob', 'Dan']
+Player Derek not in current players: ['Tyler', 'Scott', 'Sam', 'Jacob', 'Dan']
+Player Derek not in current players: ['Tyler', 'Scott', 'Sam', 'Jacob', 'Dan']
+Player Derek not in current players: ['Tyler', 'Scott', 'Sam', 'Jacob', 'Dan']
+The Werewolves removed Derek from the game during the night.
+Checking for a winner after Night Phase.
+The Players are debating and voting.
+INFO:     127.0.0.1:59424 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59021 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59021 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59021 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+Scott bid: 3
+INFO:     127.0.0.1:59021 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59021 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59495 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59021 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59545 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59021 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59021 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59021 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59021 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59642 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59021 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+Dan bid: 2
+INFO:     127.0.0.1:59021 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59021 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59674 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59021 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59702 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59702 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59714 - "GET /health HTTP/1.1" 200 OK
+Result '...' not in allowed values ['0', '1', '2', '3', '4'], retrying...
+INFO:     127.0.0.1:59799 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59799 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59801 - "GET /health HTTP/1.1" 200 OK
+Tyler bid: 2
+INFO:     127.0.0.1:59799 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59799 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59799 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59875 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59799 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59799 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59922 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59799 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59799 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59799 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+Sam bid: 2
+INFO:     127.0.0.1:59965 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59799 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59799 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59799 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59996 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59799 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59799 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60068 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59799 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59799 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59799 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60110 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59799 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59799 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59799 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60210 - "GET /health HTTP/1.1" 200 OK
+Scott (Doctor): Derek’s sudden elimination confirms the Werewolves are still lurking. I saved Sam last night, but their next target could be anyone. Jacob’s total silence throughout this game is unsettling—Werewolves often hide in plain sight. Let’s eliminate him now to prevent a night attack. The Village thrives when we act before they strike.
+INFO:     127.0.0.1:59799 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59799 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60288 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59799 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59799 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59799 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60362 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59799 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59799 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60390 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59799 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59799 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59799 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60504 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59799 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59799 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59799 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60548 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59799 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59799 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60590 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59799 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59799 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59799 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60618 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59799 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60185 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60185 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+Result 'Jacob' not in allowed values ['Dan', 'Tyler', 'Sam', 'Scott'], retrying...
+INFO:     127.0.0.1:60678 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60185 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60185 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60722 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60185 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60185 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60185 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60830 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60185 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60185 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60892 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60185 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60185 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60185 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61113 - "GET /health HTTP/1.1" 200 OK
+Jacob bid: 2
+INFO:     127.0.0.1:60185 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60185 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60185 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61141 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60185 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60185 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61183 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60185 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+Dan bid: 2
+INFO:     127.0.0.1:60185 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60185 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61215 - "GET /health HTTP/1.1" 200 OK
+Tyler bid: 2
+INFO:     127.0.0.1:60185 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61296 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61296 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+Sam bid: 2
+INFO:     127.0.0.1:61312 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61296 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61296 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61380 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61296 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61296 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61296 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61493 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61296 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61296 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61526 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61296 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61296 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61296 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61619 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61296 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61296 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61296 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61742 - "GET /health HTTP/1.1" 200 OK
+Sam (Werewolf): Scott, your accusation against Jacob is unfounded. If the Doctor saved someone last night, they would have defended themselves. Let's vote for the Doctor to verify their loyalty. A false ally could be our greatest threat.
+INFO:     127.0.0.1:61832 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61908 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62003 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62082 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62084 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62084 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62109 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62084 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62084 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62084 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62159 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62176 - "GET /api/v1/games/session_20251031_004248 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62176 - "GET /api/v1/games/session_20251031_004248/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62189 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62257 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62304 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62366 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62397 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62451 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62479 - "GET /health HTTP/1.1" 200 OK
+Jacob voted to remove Dan
+Dan voted to remove Jacob
+Sam voted to remove Jacob
+Scott voted to remove Jacob
+Tyler voted to remove Scott
+
+Player Jacob not in current players: ['Tyler', 'Scott', 'Sam', 'Dan']
+Player Jacob not in current players: ['Tyler', 'Scott', 'Sam', 'Dan']
+Player Jacob not in current players: ['Tyler', 'Scott', 'Sam', 'Dan']
+The majority voted to remove Jacob from the game.
+Checking for a winner after Day Phase.
+The Players are summarizing the debate.
+INFO:     127.0.0.1:62565 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62593 - "GET /health HTTP/1.1" 200 OK

@@ -1,8 +1,13 @@
-# 🐺 狼人杀竞技场 - Werewolf Arena
+# 🐺 狼人杀竞技场 - Werewolf Arena v2.0
 
-一个基于大语言模型的狼人杀游戏框架，支持AI模型对战和实时观看。
+一个基于大语言模型的狼人杀游戏框架，支持AI模型对战和实时观看。项目已完成前后端分离重构，提供现代化的Web界面。
 
-## 🚀 快速启动
+## 🎯 版本说明
+
+- **v2.0 (推荐)**: 重构版本 - Next.js前端 + FastAPI后端
+- **v1.0 (兼容)**: 原始版本 - 静态HTML + Python后端
+
+## 🚀 快速启动 (v2.0版本)
 
 ### 方法一：一键启动（推荐）
 
@@ -11,123 +16,152 @@
 ./start.sh
 ```
 
-**Windows:**
-```cmd
-start.bat
-```
-
 ### 方法二：手动启动
 
-#### 1. 启动后端
+#### 1. 启动后端服务
 ```bash
 cd backend
 source ../venv/bin/activate  # Windows: venv\Scripts\activate
+
+# 复制并配置环境变量
+cp .env.example .env
+# 编辑 .env 文件，填入API密钥
+
+# 启动后端
 python3 -m uvicorn src.api.app:app --reload --host 0.0.0.0 --port 8001
 ```
 
-#### 2. 启动前端（新终端）
+#### 2. 启动前端服务（新终端）
 ```bash
-python3 -m http.server 8080
+cd frontend
+npm install  # 首次运行需要安装依赖
+npm run dev
 ```
 
 #### 3. 访问应用
-- 🎮 **游戏主页**: http://localhost:8080/home.html
-- 📺 **直播页面**: http://localhost:8080/index.html
+- 🎮 **现代前端**: http://localhost:3000 (v2.0推荐)
+- 🎮 **传统前端**: http://localhost:8080/home.html (v1.0兼容)
 - 📚 **API文档**: http://localhost:8001/docs
+- 📊 **健康检查**: http://localhost:8001/health
 
-### 📋 详细说明
-查看完整启动指南：[STARTUP_GUIDE.md](./STARTUP_GUIDE.md)
+## 🔄 v1.0版本启动（兼容模式）
 
----
+如果您想使用原始版本：
 
-## 项目说明
+```bash
+# 启动v1.0后端
+python3 main.py --run --v_models=glm4 --w_models=gpt4
+
+# 启动v1.0前端
+python3 -m http.server 8080
+
+# 访问地址
+# 🎮 游戏主页: http://localhost:8080/home.html
+# 📺 直播页面: http://localhost:8080/index.html
+```
+
+## 🏗️ 项目架构 (v2.0)
+
+### 技术栈
+- **后端**: FastAPI + Python 3.12 + Pydantic V2
+- **前端**: Next.js 14 + TypeScript + Tailwind CSS + Zustand
+- **通信**: REST API + WebSocket
+- **部署**: 支持Docker容器化
+
+### 目录结构
+```
+werewolf_arena/
+├── backend/                 # FastAPI后端服务
+│   ├── src/
+│   │   ├── core/           # 核心游戏逻辑
+│   │   ├── services/       # LLM服务和业务逻辑
+│   │   ├── api/           # FastAPI应用和路由
+│   │   └── config/        # 配置管理
+│   ├── tests/             # 后端测试
+│   └── requirements.txt   # Python依赖
+├── frontend/              # Next.js前端应用
+│   ├── src/
+│   │   ├── app/          # App Router页面
+│   │   ├── components/   # React组件
+│   │   ├── lib/          # 工具库和状态管理
+│   │   └── types/        # TypeScript类型定义
+│   └── package.json      # Node.js依赖
+├── docs/                 # 项目文档
+├── venv/                 # Python虚拟环境
+└── start.sh             # 一键启动脚本
+```
+
+## ⚙️ 环境配置
+
+### 1. 创建虚拟环境
+```bash
+python3 -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+```
+
+### 2. 配置API密钥
+```bash
+# 复制环境变量模板
+cp backend/.env.example backend/.env
+
+# 编辑配置文件，填入您的API密钥
+# 支持的提供商：
+# - OPENAI_API_KEY (GPT models)
+# - GLM_API_KEY (智谱AI模型)
+# - OPENROUTER_API_KEY (多模型聚合平台)
+```
+
+### 3. 安装依赖
+```bash
+# 后端依赖
+cd backend && pip install -r requirements.txt && cd ..
+
+# 前端依赖
+cd frontend && npm install && cd ..
+```
+
+## 📚 API文档
+
+启动服务后可访问：
+- **Swagger UI**: http://localhost:8001/docs
+- **ReDoc**: http://localhost:8001/redoc
+- **健康检查**: http://localhost:8001/health
+
+### 主要API端点
+- `GET /api/v1/games/` - 游戏列表
+- `POST /api/v1/games/start` - 启动游戏
+- `GET /api/v1/models/` - 可用模型
+- `GET /api/v1/status/health` - 服务状态
+
+## 📖 详细文档
+
+- [重构进度报告](./REFACTORING_PROGRESS.md) - 完整的重构历程
+- [启动指南](./STARTUP_GUIDE.md) - 详细的启动说明
+- [架构路线图](./REFACTORING_ROADMAP.md) - 技术架构规划
+
+## 🔬 研究背景
 
 This repository provides code for [Werewolf Arena](https://arxiv.org/abs/2407.13943) - a framework for evaluating the social reasoning skills of large language models (LLMs) through the game of Werewolf.
 
-## 环境设置
+## 🎮 支持的模型
 
-### Create a Python Virtual Environment
-You only need to do this once.
-```
-python3 -m venv ./venv
-```
+### OpenAI
+- GPT-4, GPT-4o, GPT-3.5-turbo
 
-### Activate the Virtual Environment
-```
-source ./venv/bin/activate
-```
+### 智谱AI (GLM)
+- GLM-4, GLM-4-air, GLM-4-flash
 
-### Install Dependencies
-```
-pip install -r requirements.txt
-```
+### OpenRouter (多模型聚合)
+- Claude 3.5 Sonnet, Gemini, Llama等
 
-### Set OpenAI API Key for using GPTs
-```
-export OPENAI_API_KEY=<your api key>
-```
-The program will read from this environment variable.
-
-### (Optional) Use OpenRouter for multiple vendors via OpenAI-compatible API
-Set these to route any model whose id starts with `openrouter/` through OpenRouter:
-```
-export OPENROUTER_API_KEY=<your openrouter api key>
-# Optional but recommended for analytics/routing on OpenRouter
-export OPENROUTER_REFERRER=https://your.site.or.repo
-export OPENROUTER_APP_TITLE="Werewolf Arena"
-```
-Example CLI (villagers use Claude 3.5 Sonnet via OpenRouter, werewolves use GPT-4o via OpenRouter):
-```
-python3 main.py --run --v_models=or-sonnet --w_models=or-gpt4o
-```
-You can add more aliases in `werewolf/runner.py` `model_to_id` mapping, pointing to
-OpenRouter slugs like `openrouter/anthropic/claude-3.5-sonnet` or `openrouter/openai/gpt-4o-2024-08-06`.
-
-### (Optional) Use ZhipuAI GLM API (native)
-Set these to route any model whose id starts with `glm/` through GLM's OpenAI-compatible API:
-```
-export GLM_API_KEY=<your zhipu/glm api key>
-# Optional: override base url if needed
-export GLM_BASE_URL=https://open.bigmodel.cn/api/paas/v4
-```
-Example CLI:
-```
-python3 main.py --run --v_models=glm4-air --w_models=glm4
+### 免费模型测试
+```bash
+# 使用GLM免费模型
+python3 main.py --run --v_models=glm4-flash --w_models=glm4-flash
 ```
 
-### Set up GCP for using Gemini
- - [Install the gcloud cli](https://cloud.google.com/sdk/docs/install)
- - Authenticate and set your GCP project
- - Create the application default credentials by running 
- ```
- gcloud auth application-default login
- ```
+---
 
-## Run a single game
-
-`python3 main.py --run --v_models=pro1.5 --w_models=gpt4`
-
-
-## Run games between all model combinations
-
-`python3 main.py --eval --num_games=5 --v_models=pro1.5,flash --w_models=gpt4,gpt4o`
-
-## Bulk resume failed games
-
-`python3 main.py --resume`
-
-The games to be resumed are currently hardcoded in `runner.py`, and
-is defined as a list of directories where their states are saved.
-
-## Launch the Interactive Viewer
-![alt text](viewer.png)
-
-Once a game is completed, you can use the interactive viewer to explore the gamelog. You can see players' private reasoning, bids, votes and prompts. 
-
- - `npm i`
- - `npm run start`
- - Open the browser, e.g. `http://localhost:8080/?session_id=session_20240610_084702`
-
-
-# 使用免费大模型测试
-# python3 main.py --run --v_models=glmz1-flash --w_models=glmz1-flash
+**当前版本**: v2.0.0
+**最后更新**: 2025-10-31
+**状态**: ✅ 前后端分离重构完成，可正常使用

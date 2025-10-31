@@ -125,26 +125,31 @@ class WerewolfLiveStream {
         try {
             console.log(`[${new Date().toISOString()}] Retrieving data for session: ${this.sessionId}`);
 
-            // 获取游戏日志
-            const logsResponse = await fetch(`/logs/${this.sessionId}/game_logs.json`);
-            if (!logsResponse.ok) {
-                throw new Error(`Failed to fetch logs: ${logsResponse.status}`);
+            // 从新后端API获取游戏状态
+            const gameStateResponse = await fetch(`http://localhost:8001/api/v1/games/${this.sessionId}`);
+            if (!gameStateResponse.ok) {
+                throw new Error(`Failed to fetch game state: ${gameStateResponse.status}`);
             }
-            const logs = await logsResponse.json();
-            console.log(`[${new Date().toISOString()}] Retrieved ${logs.length} rounds of logs`);
+            const gameState = await gameStateResponse.json();
+            console.log(`[${new Date().toISOString()}] Retrieved game state, status: ${gameState.status}`);
 
-            // 获取游戏状态
-            let stateResponse = await fetch(`/logs/${this.sessionId}/game_complete.json`);
-            let stateType = 'complete';
-            if (stateResponse.status === 404) {
-                stateResponse = await fetch(`/logs/${this.sessionId}/game_partial.json`);
-                stateType = 'partial';
+            // 尝试获取日志文件（通过后端日志目录）
+            let logs = [];
+            try {
+                const logsResponse = await fetch(`http://localhost:8001/api/v1/games/${this.sessionId}/logs`);
+                if (logsResponse.ok) {
+                    logs = await logsResponse.json();
+                    console.log(`[${new Date().toISOString()}] Retrieved ${logs.length} rounds of logs`);
+                } else {
+                    console.log(`[${new Date().toISOString()}] No logs available yet`);
+                }
+            } catch (logsError) {
+                console.log(`[${new Date().toISOString()}] Logs not available: ${logsError.message}`);
             }
-            if (!stateResponse.ok) {
-                throw new Error(`Failed to fetch state: ${stateResponse.status}`);
-            }
-            const state = await stateResponse.json();
-            console.log(`[${new Date().toISOString()}] Retrieved ${stateType} state, winner: ${state.winner || 'none'}`);
+
+            // 使用游戏状态作为state数据
+            const state = gameState;
+            console.log(`[${new Date().toISOString()}] Using game state, current_round: ${state.current_round || 'none'}`);
 
             // 暂时禁用数据哈希检查，直接处理所有数据
             // const currentDataHash = this.calculateDataHash(logs, state);
@@ -231,16 +236,31 @@ class WerewolfLiveStream {
             }
         }
 
+        // 处理新后端的players数据格式
+        const playersData = {};
+        if (state.players && Array.isArray(state.players)) {
+            // 新后端格式：players 是对象数组
+            for (const player of state.players) {
+                playersData[player.name] = {
+                    role: player.role,
+                    model: player.model
+                };
+            }
+        } else {
+            // 兼容原格式
+            Object.assign(playersData, state.players || {});
+        }
+
         let aliveCount = 0;
         let eliminatedCount = 0;
 
         // 处理所有玩家
-        for (const [name, playerData] of Object.entries(state.players)) {
+        for (const [name, playerData] of Object.entries(playersData)) {
             const player = playerData;
             const isAlive = !eliminatedPlayers.has(name);
 
             this.players.set(name, {
-                name: player.name,
+                name: name,
                 role: player.role,
                 avatar: `static/${name}.png`,
                 status: isAlive ? 'alive' : 'eliminated',
@@ -502,7 +522,18 @@ class WerewolfLiveStream {
     getRoleByPlayer(playerName) {
         if (!this.data?.state)
             return null;
+
         const state = this.data.state;
+
+        // 处理新后端格式：从players数组中查找角色
+        if (state.players && Array.isArray(state.players)) {
+            const player = state.players.find(p => p.name === playerName);
+            if (player) {
+                return player.role;
+            }
+        }
+
+        // 兼容原格式
         if (state.doctor?.name === playerName)
             return 'Doctor';
         if (state.seer?.name === playerName)
@@ -982,12 +1013,97 @@ class WerewolfLiveStream {
     scrollToBottom() {
         const container = document.getElementById('chat-messages');
         if (container) {
+            // 检查游戏是否已结束
+            if (this.currentGameState?.winner) {
+                console.log('Game completed, stopping auto-scroll');
+                // 显示游戏结束提示
+                this.showGameEndMessage();
+                return; // 游戏结束后不再自动滚动
+            }
+
             // 使用平滑滚动
             container.scrollTo({
                 top: container.scrollHeight,
                 behavior: 'smooth'
             });
         }
+    }
+
+    showGameEndMessage() {
+        // 检查是否已经显示过游戏结束提示
+        if (document.getElementById('game-end-banner')) {
+            return;
+        }
+
+        const container = document.getElementById('chat-messages');
+        if (!container) return;
+
+        // 创建游戏结束横幅
+        const endBanner = document.createElement('div');
+        endBanner.id = 'game-end-banner';
+        endBanner.style.cssText = `
+            position: sticky;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 14px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+            animation: fadeInUp 0.5s ease-out;
+            cursor: pointer;
+            max-width: 300px;
+            text-align: center;
+        `;
+        endBanner.innerHTML = `
+            🎉 游戏已结束！获胜者：${this.currentGameState.winner}
+            <br><small style="opacity: 0.8; font-size: 12px;">点击查看完整回顾</small>
+        `;
+
+        // 添加点击事件，滚动到游戏开始位置
+        endBanner.addEventListener('click', () => {
+            container.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+
+        // 添加淡入动画样式
+        if (!document.getElementById('game-end-styles')) {
+            const style = document.createElement('style');
+            style.id = 'game-end-styles';
+            style.textContent = `
+                @keyframes fadeInUp {
+                    from {
+                        opacity: 0;
+                        transform: translateX(-50%) translateY(20px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateX(-50%) translateY(0);
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        container.appendChild(endBanner);
+
+        // 5秒后自动消失
+        setTimeout(() => {
+            if (endBanner.parentNode) {
+                endBanner.style.animation = 'fadeInUp 0.5s ease-out reverse';
+                setTimeout(() => {
+                    if (endBanner.parentNode) {
+                        endBanner.remove();
+                    }
+                }, 500);
+            }
+        }, 8000);
     }
     showDebugInfo(messageId) {
         const message = this.messages.find(m => m.id === messageId);
@@ -1041,7 +1157,7 @@ ${JSON.stringify(message.data, null, 2)}
             statusText.textContent = '停止中';
             statusDot.className = 'status-dot stopping';
 
-            const response = await fetch(`/stop-game/${this.sessionId}`, {
+            const response = await fetch(`http://localhost:8001/api/v1/games/${this.sessionId}/stop`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1089,20 +1205,20 @@ ${JSON.stringify(message.data, null, 2)}
     }
 
     startGameStatusPolling() {
-        // 每5秒检查一次游戏状态
+        // 每8秒检查一次游戏状态，减少轮询频率
         setInterval(async () => {
             await this.checkGameStatus();
-        }, 5000);
+        }, 8000);
     }
 
     async checkGameStatus() {
         if (!this.sessionId) return;
 
         try {
-            const response = await fetch(`/game-status/${this.sessionId}`);
+            const response = await fetch(`http://localhost:8001/api/v1/games/${this.sessionId}`);
             const result = await response.json();
 
-            if (result.success) {
+            if (result.status) {
                 this.updateGameControls(result.status);
             }
         } catch (error) {
@@ -1521,10 +1637,10 @@ ${JSON.stringify(message.data, null, 2)}
      * 定期更新AI状态（每3秒）
      */
     startAIStatusUpdates() {
-        // 每3秒更新一次AI状态
+        // 每6秒更新一次AI状态，减少更新频率
         this.aiStatusInterval = setInterval(() => {
             this.updateAIStatusFromLogs();
-        }, 3000);
+        }, 6000);
     }
 
     /**
@@ -1591,7 +1707,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 定期更新（模拟实时）
         setInterval(() => {
             liveStream.retrieveData();
-        }, 3000); // 每3秒更新一次，减少频率
+        }, 5000); // 每5秒更新一次，进一步降低频率
     }
     catch (error) {
         console.error('Failed to initialize live stream:', error);

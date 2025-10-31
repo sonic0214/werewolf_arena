@@ -1,7 +1,50 @@
-# Werewolf The Social Deduction Game
+# 🐺 狼人杀竞技场 - Werewolf Arena
+
+一个基于大语言模型的狼人杀游戏框架，支持AI模型对战和实时观看。
+
+## 🚀 快速启动
+
+### 方法一：一键启动（推荐）
+
+**macOS/Linux:**
+```bash
+./start.sh
+```
+
+**Windows:**
+```cmd
+start.bat
+```
+
+### 方法二：手动启动
+
+#### 1. 启动后端
+```bash
+cd backend
+source ../venv/bin/activate  # Windows: venv\Scripts\activate
+python3 -m uvicorn src.api.app:app --reload --host 0.0.0.0 --port 8001
+```
+
+#### 2. 启动前端（新终端）
+```bash
+python3 -m http.server 8080
+```
+
+#### 3. 访问应用
+- 🎮 **游戏主页**: http://localhost:8080/home.html
+- 📺 **直播页面**: http://localhost:8080/index.html
+- 📚 **API文档**: http://localhost:8001/docs
+
+### 📋 详细说明
+查看完整启动指南：[STARTUP_GUIDE.md](./STARTUP_GUIDE.md)
+
+---
+
+## 项目说明
+
 This repository provides code for [Werewolf Arena](https://arxiv.org/abs/2407.13943) - a framework for evaluating the social reasoning skills of large language models (LLMs) through the game of Werewolf.
 
-## Set up the environment
+## 环境设置
 
 ### Create a Python Virtual Environment
 You only need to do this once.

@@ -47,9 +47,15 @@ def main():
     print("✅ 检查完成，正在启动Web服务器...")
     print()
 
-    # 延迟2秒后自动打开浏览器
+    # 延迟后自动打开浏览器（使用配置文件）
     def open_browser():
-        time.sleep(2)
+        try:
+            # 尝试使用延迟配置
+            from backend.src.config.timing_loader import get_delay
+            delay = get_delay("ui_animation") / 1000  # 转换为秒
+        except:
+            delay = 2  # 默认2秒
+        time.sleep(delay)
         try:
             webbrowser.open('http://localhost:8081')
             print("🌐 已自动打开浏览器")

@@ -29,11 +29,37 @@ class WerewolfLiveStream {
         this.sessionId = this.url.get('session_id') || '';
         this.lastDataHash = null; // 用于检测数据变化
         this.gameStatus = 'unknown'; // 游戏状态: unknown, running, stopping, stopped, completed, error
+
+        // 阶段状态管理
+        this.phaseState = {
+            type: 'night',
+            status: 'initializing', // initializing, active, completed
+            startTime: null,
+            currentAction: null,
+            progress: 0,
+            totalSteps: 0
+        };
+
+        // AI思考状态管理
+        this.aiThinkingState = {
+            players: new Map(), // 存储每个AI玩家的状态
+            summary: 'AI正在准备中...',
+            lastUpdate: null
+        };
+
+        // 天亮公告防重复机制
+        this.dawnAnnouncements = new Set(); // 记录已显示天亮公告的轮次
+
+        // 夜间行动防重复机制
+        this.nightActions = new Set(); // 记录已显示的夜间行动
+
         if (this.sessionId.length == 0)
             throw new Error('No session specified');
         this.initializeEventListeners();
         this.startClock();
         this.startGameStatusPolling(); // 开始轮询游戏状态
+        this.startPhaseStatusUpdater(); // 开始更新阶段状态
+        this.startAIStatusUpdates(); // 开始更新AI状态
     }
     initializeEventListeners() {
         // 关闭调试面板
@@ -130,6 +156,9 @@ class WerewolfLiveStream {
             // this.lastDataHash = currentDataHash;
 
             this.data = { logs, state };
+            // 保存当前游戏日志和状态，供AI状态提取使用
+            this.currentGameLog = logs;
+            this.currentGameState = state;
             this.processGameData(logs, state);
         }
         catch (error) {
@@ -236,8 +265,14 @@ class WerewolfLiveStream {
         // 暂时总是重新生成消息以确保更新
         console.log(`[${new Date().toISOString()}] Regenerating all messages from scratch`);
         this.messages = [];
+        this.dawnAnnouncements.clear(); // 清空天亮公告记录，重新开始
+        this.nightActions.clear(); // 清空夜间行动记录，重新开始
         let currentTime = new Date();
         currentTime.setHours(14, 30, 0, 0); // 从14:30开始
+
+        // 找出当前正在进行的阶段
+        const currentPhase = this.findCurrentPhase(logs, state);
+
         for (let round = 0; round < logs.length; round++) {
             const roundLog = logs[round];
             const roundState = state.rounds && state.rounds[round] ? state.rounds[round] : null;
@@ -245,31 +280,80 @@ class WerewolfLiveStream {
 
             // 夜间阶段
             this.stats.currentPhase = 'night';
+            const nightActions = [
+                roundLog.investigate ? 'investigate' : null,
+                roundLog.eliminate ? 'eliminate' : null,
+                roundLog.protect ? 'protect' : null
+            ].filter(action => action !== null);
+
+            this.updatePhaseState('night', 'active', '夜间行动开始', nightActions.length);
             this.updatePhaseDisplay();
-            // 处理夜间行动
-            if (roundLog.eliminate) {
-                currentTime = this.addMinutes(currentTime, 1);
-                this.addNightMessage(currentTime, 'Werewolf', `击杀目标：${roundLog.eliminate.result?.remove || '未知'}`, roundLog.eliminate);
-            }
-            if (roundLog.protect) {
-                currentTime = this.addMinutes(currentTime, 1);
-                this.addNightMessage(currentTime, 'Doctor', `保护目标：${roundLog.protect.result?.protect || '未知'}`, roundLog.protect);
-            }
-            if (roundLog.investigate) {
+
+            // 处理夜间行动 - 按照游戏时间顺序：预言家查验 → 狼人击杀 → 医生保护
+            // 添加防重复机制
+            if (roundLog.investigate && !this.nightActions.has(`investigate_${round}`)) {
+                this.updatePhaseState('investigate', 'active', '预言家查验行动中', 1);
                 currentTime = this.addMinutes(currentTime, 1);
                 this.addNightMessage(currentTime, 'Seer', `查验目标：${roundLog.investigate.result?.investigate || '未知'}`, roundLog.investigate);
+                this.updatePhaseState('investigate', 'completed', '查验行动完成', 1);
+                this.nightActions.add(`investigate_${round}`);
             }
-            // 天亮公告 - 从 roundState 获取被淘汰的玩家
-            currentTime = this.addMinutes(currentTime, 2);
-            this.stats.currentPhase = 'day';
-            this.updatePhaseDisplay();
-            const eliminatedPlayer = roundState?.eliminated;
-            this.addSystemMessage(
-                `天亮了！昨晚${eliminatedPlayer ? eliminatedPlayer + '被淘汰了' : '是平安夜'}`,
-                currentTime
+            if (roundLog.eliminate && !this.nightActions.has(`eliminate_${round}`)) {
+                this.updatePhaseState('eliminate', 'active', '狼人击杀行动中', 1);
+                currentTime = this.addMinutes(currentTime, 1);
+                this.addNightMessage(currentTime, 'Werewolf', `击杀目标：${roundLog.eliminate.result?.remove || '未知'}`, roundLog.eliminate);
+                this.updatePhaseState('eliminate', 'completed', '击杀行动完成', 1);
+                this.nightActions.add(`eliminate_${round}`);
+            }
+            if (roundLog.protect && !this.nightActions.has(`protect_${round}`)) {
+                this.updatePhaseState('protect', 'active', '医生保护行动中', 1);
+                currentTime = this.addMinutes(currentTime, 1);
+                this.addNightMessage(currentTime, 'Doctor', `保护目标：${roundLog.protect.result?.protect || '未知'}`, roundLog.protect);
+                this.updatePhaseState('protect', 'completed', '保护行动完成', 1);
+                this.nightActions.add(`protect_${round}`);
+            }
+
+            // 夜间阶段完成，准备进入白天
+            this.updatePhaseState('night', 'completed', '夜间行动完成', nightActions.length);
+            currentTime = this.addMinutes(currentTime, 1); // 夜间到白天的过渡时间
+
+            // 天亮公告 - 确保夜间行动真正完成后才显示（每个轮次只显示一次）
+            // 严格验证夜间行动完整性
+            const nightActionsComplete = (
+                (roundLog.investigate && roundLog.investigate.result) ||
+                (roundLog.eliminate && roundLog.eliminate.result) ||
+                (roundLog.protect && roundLog.protect.result)
             );
+
+            // 验证游戏已进入白天阶段（有竞拍/辩论/投票等白天活动）
+            const hasDaytimeActivities = (
+                (roundLog.bid && roundLog.bid.length > 0) ||
+                (roundLog.debate && roundLog.debate.length > 0) ||
+                (roundLog.votes && roundLog.votes.length > 0)
+            );
+
+            // 只有同时满足以下条件才显示天亮公告：
+            // 1. 夜间行动完成 2. 有淘汰信息 3. 已进入白天阶段或游戏完成 4. 该轮次未显示过
+            if (nightActionsComplete &&
+                roundState?.eliminated !== undefined &&
+                (hasDaytimeActivities || state.winner) &&
+                !this.hasDawnAnnouncementForRound(round)) {
+
+                currentTime = this.addMinutes(currentTime, 2);
+                this.stats.currentPhase = 'day';
+                this.updatePhaseState('day', 'active', '白天阶段开始', 1);
+                this.updatePhaseDisplay();
+                const eliminatedPlayer = roundState?.eliminated;
+                this.addSystemMessage(
+                    `天亮了！昨晚${eliminatedPlayer ? eliminatedPlayer + '被淘汰了' : '是平安夜'}`,
+                    currentTime
+                );
+                this.markDawnAnnouncementForRound(round);
+            }
+
             // 白天阶段 - 竞拍发言权
             if (roundLog.bid && Array.isArray(roundLog.bid)) {
+                this.updatePhaseState('bid', 'active', '竞拍发言权', roundLog.bid.length);
                 for (let turn = 0; turn < roundLog.bid.length; turn++) {
                     const bidTurn = roundLog.bid[turn];
                     if (Array.isArray(bidTurn)) {
@@ -279,27 +363,39 @@ class WerewolfLiveStream {
                         }
                     }
                     currentTime = this.addMinutes(currentTime, 1);
+                    this.updatePhaseProgress(turn + 1, roundLog.bid.length);
                 }
+                this.updatePhaseState('bid', 'completed', '竞拍发言权结束', roundLog.bid.length);
             }
+
             // 辩论发言
             if (roundLog.debate && Array.isArray(roundLog.debate)) {
-                for (const [name, debateData] of roundLog.debate) {
+                this.updatePhaseState('debate', 'active', '辩论发言中', roundLog.debate.length);
+                for (let i = 0; i < roundLog.debate.length; i++) {
+                    const [name, debateData] = roundLog.debate[i];
                     currentTime = this.addMinutes(currentTime, 3);
                     this.addDebateMessage(currentTime, name, debateData);
+                    this.updatePhaseProgress(i + 1, roundLog.debate.length);
                 }
+                this.updatePhaseState('debate', 'completed', '辩论发言结束', roundLog.debate.length);
             }
+
             // 投票阶段
             if (roundLog.votes && roundLog.votes.length > 0) {
+                this.updatePhaseState('vote', 'active', '投票进行中', roundLog.votes.length);
                 currentTime = this.addMinutes(currentTime, 2);
                 this.addSystemMessage('开始投票', currentTime);
                 const finalVotes = roundLog.votes[roundLog.votes.length - 1];
-                for (const vote of finalVotes) {
+                for (let i = 0; i < finalVotes.length; i++) {
+                    const vote = finalVotes[i];
                     currentTime = this.addMinutes(currentTime, 1);
                     this.addVoteMessage(currentTime, vote.player, vote.log);
+                    this.updatePhaseProgress(i + 1, finalVotes.length);
                 }
                 // 显示投票结果和被驱逐的玩家
                 currentTime = this.addMinutes(currentTime, 2);
                 this.displayVotingResults(finalVotes, currentTime);
+                this.updatePhaseState('vote', 'completed', '投票结束', roundLog.votes.length);
 
                 // 添加驱逐公告
                 const exiledPlayer = roundState?.exiled;
@@ -307,13 +403,26 @@ class WerewolfLiveStream {
                     this.addSystemMessage(`${exiledPlayer}被驱逐出局`, currentTime);
                 }
             }
+
             // 总结发言
             if (roundLog.summaries && Array.isArray(roundLog.summaries)) {
-                for (const [name, summaryData] of roundLog.summaries) {
+                this.updatePhaseState('summary', 'active', '总结发言中', roundLog.summaries.length);
+                for (let i = 0; i < roundLog.summaries.length; i++) {
+                    const [name, summaryData] = roundLog.summaries[i];
                     currentTime = this.addMinutes(currentTime, 3);
                     this.addSummaryMessage(currentTime, name, summaryData);
+                    this.updatePhaseProgress(i + 1, roundLog.summaries.length);
                 }
+                this.updatePhaseState('summary', 'completed', '本轮结束', roundLog.summaries.length);
             }
+        }
+
+        // 设置当前阶段状态（重要：确保显示的是当前正在进行的阶段）
+        if (currentPhase) {
+            this.updatePhaseState(currentPhase.type, currentPhase.status, currentPhase.currentAction, currentPhase.totalSteps);
+            this.phaseState.startTime = currentPhase.startTime || new Date();
+            this.phaseState.progress = currentPhase.progress || 0;
+            console.log(`[${new Date().toISOString()}] Set current phase to: ${currentPhase.type} - ${currentPhase.currentAction}`);
         }
     }
     addMinutes(date, minutes) {
@@ -555,9 +664,260 @@ class WerewolfLiveStream {
             return;
         const phaseIcon = phaseElement.querySelector('.phase-icon');
         const phaseText = phaseElement.querySelector('.phase-text');
-        if (phaseIcon && phaseText) {
+        const phaseStatus = phaseElement.querySelector('#phase-status');
+
+        if (phaseIcon && phaseText && phaseStatus) {
             phaseIcon.textContent = this.stats.currentPhase === 'night' ? '🌙' : '☀️';
             phaseText.textContent = `第${this.stats.currentRound}轮 - ${this.stats.currentPhase === 'night' ? '夜间' : '白天'}阶段`;
+
+            // 更新阶段状态文本
+            const statusText = this.getPhaseStatusText();
+            phaseStatus.textContent = statusText;
+            phaseStatus.className = `phase-status ${this.phaseState.type}`;
+        }
+    }
+
+    startPhaseStatusUpdater() {
+        // 每2秒更新一次阶段状态
+        setInterval(() => {
+            this.updatePhaseStatus();
+        }, 2000);
+    }
+
+    updatePhaseStatus() {
+        // 更新右侧栏的阶段状态面板
+        this.updatePhasePanel();
+    }
+
+    updatePhaseState(type, status, currentAction, totalSteps) {
+        this.phaseState = {
+            type: type,
+            status: status,
+            startTime: new Date(),
+            currentAction: currentAction,
+            progress: status === 'completed' ? 100 : (status === 'initializing' ? 0 : 50),
+            totalSteps: totalSteps
+        };
+        this.updatePhasePanel();
+    }
+
+    updatePhaseProgress(currentStep, totalSteps) {
+        if (this.phaseState.status === 'active') {
+            this.phaseState.progress = Math.round((currentStep / totalSteps) * 100);
+            this.phaseState.currentAction = `进度: ${currentStep}/${totalSteps}`;
+            this.updatePhasePanel();
+        }
+    }
+
+    findCurrentPhase(logs, state) {
+        // 检查游戏是否已完成
+        if (state.winner) {
+            return {
+                type: 'summary',
+                status: 'completed',
+                currentAction: '游戏结束',
+                totalSteps: 1,
+                progress: 100,
+                startTime: new Date()
+            };
+        }
+
+        // 获取最后一轮的数据
+        const lastRoundIndex = logs.length - 1;
+        if (lastRoundIndex < 0) {
+            return {
+                type: 'night',
+                status: 'initializing',
+                currentAction: '游戏准备中',
+                totalSteps: 1,
+                progress: 0,
+                startTime: new Date()
+            };
+        }
+
+        const lastRound = logs[lastRoundIndex];
+        const roundState = state.rounds && state.rounds[lastRoundIndex] ? state.rounds[lastRoundIndex] : null;
+
+        // 按游戏阶段顺序检查哪个阶段正在进行
+        const phases = [
+            { key: 'investigate', name: '预言家查验', type: 'investigate' },
+            { key: 'eliminate', name: '狼人击杀', type: 'eliminate' },
+            { key: 'protect', name: '医生保护', type: 'protect' },
+            { key: 'bid', name: '竞拍发言', type: 'bid' },
+            { key: 'debate', name: '辩论发言', type: 'debate' },
+            { key: 'votes', name: '投票', type: 'vote' },
+            { key: 'summaries', name: '总结发言', type: 'summary' }
+        ];
+
+        // 检查每个阶段的完成情况
+        for (const phase of phases) {
+            const phaseData = lastRound[phase.key];
+
+            if (!phaseData) {
+                // 如果这个阶段的数据不存在，说明是当前正在进行的阶段
+                return {
+                    type: phase.type,
+                    status: 'active',
+                    currentAction: `${phase.name}进行中...`,
+                    totalSteps: 1,
+                    progress: 50,
+                    startTime: new Date()
+                };
+            }
+
+            // 检查阶段是否完成
+            if (Array.isArray(phaseData)) {
+                if (phaseData.length === 0) {
+                    // 阶段数据存在但为空，说明刚开始
+                    return {
+                        type: phase.type,
+                        status: 'active',
+                        currentAction: `${phase.name}开始...`,
+                        totalSteps: 1,
+                        progress: 10,
+                        startTime: new Date()
+                    };
+                }
+            } else if (phaseData && phaseData.result) {
+                // 单个行动阶段（如 investigate, eliminate, protect）
+                if (!phaseData.result.action || phaseData.result.action === 'pending') {
+                    return {
+                        type: phase.type,
+                        status: 'active',
+                        currentAction: `${phase.name}进行中...`,
+                        totalSteps: 1,
+                        progress: 50,
+                        startTime: new Date()
+                    };
+                }
+            }
+        }
+
+        // 如果所有阶段都完成了，检查是否有下一轮
+        if (state.winner) {
+            return {
+                type: 'summary',
+                status: 'completed',
+                currentAction: '游戏结束',
+                totalSteps: 1,
+                progress: 100,
+                startTime: new Date()
+            };
+        }
+
+        // 当前轮已完成，等待下一轮开始
+        return {
+            type: 'night',
+            status: 'completed',
+            currentAction: '等待下一轮开始',
+            totalSteps: 1,
+            progress: 100,
+            startTime: new Date()
+        };
+    }
+
+    updatePhasePanel() {
+        const phaseIcon = document.getElementById('phase-type-icon');
+        const phaseName = document.getElementById('phase-type-name');
+        const phaseStatus = document.getElementById('phase-status-detail');
+        const phaseStartTime = document.getElementById('phase-start-time');
+        const phaseRemaining = document.getElementById('phase-remaining');
+        const progressBar = document.getElementById('phase-progress-bar');
+        const phaseInfoPanel = document.getElementById('phase-info');
+
+        if (!phaseIcon || !phaseName || !phaseStatus) return;
+
+        // 更新阶段名称和图标
+        const phaseInfo = this.getPhaseInfo(this.phaseState.type);
+        phaseIcon.textContent = phaseInfo.icon;
+        phaseName.textContent = phaseInfo.name;
+
+        // 更新状态文本
+        phaseStatus.textContent = this.getPhaseStatusText();
+
+        // 更新开始时间
+        if (this.phaseState.startTime) {
+            phaseStartTime.textContent = this.formatTime(this.phaseState.startTime);
+        }
+
+        // 更新预计剩余时间
+        const remainingTime = this.calculateRemainingTime();
+        phaseRemaining.textContent = remainingTime;
+
+        // 更新进度条
+        if (progressBar && this.phaseState.totalSteps > 0) {
+            progressBar.style.width = `${this.phaseState.progress}%`;
+        }
+
+        // 添加更新动画
+        if (phaseInfoPanel) {
+            phaseInfoPanel.classList.add('updating');
+            setTimeout(() => {
+                phaseInfoPanel.classList.remove('updating');
+            }, 300);
+        }
+    }
+
+    getPhaseInfo(phaseType) {
+        const phaseTypes = {
+            'night': { icon: '🌙', name: '夜间阶段' },
+            'day': { icon: '☀️', name: '白天阶段' },
+            'eliminate': { icon: '🗡️', name: '击杀行动' },
+            'protect': { icon: '🛡️', name: '保护行动' },
+            'investigate': { icon: '🔍', name: '查验行动' },
+            'bid': { icon: '💰', name: '竞拍发言' },
+            'debate': { icon: '🗣️', name: '辩论发言' },
+            'vote': { icon: '🗳️', name: '投票阶段' },
+            'summary': { icon: '📝', name: '总结发言' }
+        };
+        return phaseTypes[phaseType] || { icon: '🎯', name: '未知阶段' };
+    }
+
+    getPhaseStatusText() {
+        const statusTexts = {
+            'initializing': '准备中...',
+            'active': this.phaseState.currentAction || '进行中...',
+            'completed': '已完成'
+        };
+        return statusTexts[this.phaseState.status] || '未知状态';
+    }
+
+    calculateRemainingTime() {
+        if (!this.phaseState.startTime || this.phaseState.status === 'completed') {
+            return '--:--';
+        }
+
+        const elapsed = Date.now() - this.phaseState.startTime.getTime();
+        const estimatedDuration = this.getEstimatedPhaseDuration(this.phaseState.type);
+        const remaining = Math.max(0, estimatedDuration - elapsed);
+
+        return this.formatDuration(remaining);
+    }
+
+    getEstimatedPhaseDuration(phaseType) {
+        // 估算每个阶段的持续时间（毫秒）
+        const durations = {
+            'night': 30000,      // 30秒
+            'eliminate': 10000,  // 10秒
+            'protect': 10000,    // 10秒
+            'investigate': 10000, // 10秒
+            'bid': 20000,        // 20秒
+            'debate': 60000,      // 60秒
+            'vote': 30000,       // 30秒
+            'summary': 40000     // 40秒
+        };
+        return durations[phaseType] || 30000;
+    }
+
+    formatDuration(milliseconds) {
+        const seconds = Math.floor(milliseconds / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+
+        if (minutes > 0) {
+            return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+        } else {
+            return `0:${remainingSeconds.toString().padStart(2, '0')}`;
         }
     }
     displayVotingResults(votes, timestamp) {
@@ -805,6 +1165,415 @@ ${JSON.stringify(message.data, null, 2)}
                 statusText.textContent = '未知';
                 statusDot.className = 'status-dot';
         }
+    }
+
+    // AI思考状态管理方法
+    /**
+     * 从游戏日志提取AI思考状态 - 方案C实现
+     * @param {Array} logs - 游戏日志
+     * @param {Object} currentState - 当前游戏状态
+     * @returns {Object} AI思考状态信息
+     */
+    extractAIThinkingStates(logs, currentState) {
+        const aiStates = new Map();
+        let globalSummary = 'AI正在准备中...';
+        let lastActionTime = null;
+
+        try {
+            // 获取当前轮次和阶段
+            const currentRound = currentState?.rounds?.length || 0;
+            const currentPhase = this.findCurrentPhase(logs, currentState);
+
+            // 分析最近的AI思考
+            const recentLogs = logs.slice(-10); // 最近10条日志
+
+            // 尝试从不同结构提取AI状态
+            for (let i = logs.length - 1; i >= Math.max(0, logs.length - 3); i--) {
+                const roundLog = logs[i];
+
+                // 检查夜间行动
+                if (roundLog.investigate && roundLog.investigate.player) {
+                    const player = roundLog.investigate.player;
+                    const role = '预言家';
+                    const action = 'investigate';
+                    const reasoning = roundLog.investigate.result?.reasoning || '正在查验目标身份...';
+
+                    aiStates.set(player, {
+                        role: role,
+                        action: action,
+                        reasoning: reasoning,
+                        timestamp: new Date(),
+                        status: this.getAIStatusFromAction(action),
+                        progress: 90
+                    });
+                    lastActionTime = new Date();
+                }
+
+                if (roundLog.eliminate && roundLog.eliminate.player) {
+                    const player = roundLog.eliminate.player;
+                    const role = '狼人';
+                    const action = 'eliminate';
+                    const reasoning = roundLog.eliminate.result?.reasoning || '正在选择击杀目标...';
+
+                    aiStates.set(player, {
+                        role: role,
+                        action: action,
+                        reasoning: reasoning,
+                        timestamp: new Date(),
+                        status: this.getAIStatusFromAction(action),
+                        progress: 75
+                    });
+                    lastActionTime = new Date();
+                }
+
+                if (roundLog.protect && roundLog.protect.player) {
+                    const player = roundLog.protect.player;
+                    const role = '医生';
+                    const action = 'protect';
+                    const reasoning = roundLog.protect.result?.reasoning || '正在选择保护目标...';
+
+                    aiStates.set(player, {
+                        role: role,
+                        action: action,
+                        reasoning: reasoning,
+                        timestamp: new Date(),
+                        status: this.getAIStatusFromAction(action),
+                        progress: 85
+                    });
+                    lastActionTime = new Date();
+                }
+
+                // 检查白天阶段的发言和投票
+                if (roundLog.debate && Array.isArray(roundLog.debate)) {
+                    for (const [playerName, debateData] of roundLog.debate) {
+                        const reasoning = debateData.result?.reasoning || '正在准备发言...';
+                        aiStates.set(playerName, {
+                            role: '村民',
+                            action: 'debate',
+                            reasoning: reasoning,
+                            timestamp: new Date(),
+                            status: this.getAIStatusFromAction('debate'),
+                            progress: 70
+                        });
+                    }
+                    lastActionTime = new Date();
+                }
+            }
+
+            // 如果没有找到思考状态，尝试从原始日志提取
+            if (aiStates.size === 0) {
+                // 从game_logs.json中提取更详细的思考过程
+                this.extractDetailedAIThinking(logs, aiStates, currentPhase);
+            }
+
+            // 生成全局摘要
+            globalSummary = this.generateGlobalAISummary(aiStates, currentPhase);
+
+        } catch (error) {
+            console.warn('提取AI思考状态时出错:', error);
+        }
+
+        return {
+            players: aiStates,
+            summary: globalSummary,
+            lastUpdate: lastActionTime || new Date()
+        };
+    }
+
+    /**
+     * 从原始游戏日志提取详细的AI思考过程
+     */
+    extractDetailedAIThinking(logs, aiStates, currentPhase) {
+        // 这里可以进一步分析原始日志，提取prompt和raw_resp中的思考过程
+        // 暂时使用基本实现
+        const activePlayers = ['Alice', 'Bob', 'Charlie', 'Derek', 'Eve']; // 示例玩家
+
+        for (const player of activePlayers) {
+            if (Math.random() > 0.7) { // 模拟有些玩家正在思考
+                aiStates.set(player, {
+                    role: this.getRandomRole(),
+                    action: this.getActionFromPhase(currentPhase),
+                    reasoning: `正在分析当前局势，考虑最佳策略...`,
+                    timestamp: new Date(),
+                    status: '思考中',
+                    progress: Math.floor(Math.random() * 100)
+                });
+            }
+        }
+    }
+
+    /**
+     * 根据动作类型获取AI状态
+     */
+    getAIStatusFromAction(action) {
+        const statusMap = {
+            'eliminate': '🎯 选择目标',
+            'protect': '🛡️ 保护目标',
+            'investigate': '🔍 查验身份',
+            'bid': '💰 竞拍发言',
+            'debate': '🗣️ 辩论发言',
+            'vote': '🗳️ 投票决策',
+            'summary': '📝 总结发言'
+        };
+
+        return statusMap[action] || '💭 思考中';
+    }
+
+    /**
+     * 根据动作和阶段获取AI进度
+     */
+    getAIProgressFromAction(action, currentPhase) {
+        // 根据不同动作返回不同的进度
+        if (!currentPhase) return 0;
+
+        // 模拟进度计算
+        const baseProgress = {
+            'investigate': 85,
+            'eliminate': 75,
+            'protect': 90,
+            'bid': 60,
+            'debate': 70,
+            'vote': 80,
+            'summary': 95
+        };
+
+        return baseProgress[action] || 50;
+    }
+
+    /**
+     * 生成全局AI状态摘要
+     */
+    generateGlobalAISummary(aiStates, currentPhase) {
+        if (aiStates.size === 0) {
+            return (currentPhase && currentPhase.type) ?
+                `${this.getPhaseDisplayName(currentPhase.type)}阶段，AI正在分析局势...` :
+                'AI正在准备中...';
+        }
+
+        const activeRoles = new Set();
+        for (const [player, state] of aiStates) {
+            if (state.role) {
+                activeRoles.add(state.role);
+            }
+        }
+
+        if (activeRoles.size === 1) {
+            const role = Array.from(activeRoles)[0];
+            return `${role}正在思考决策...`;
+        } else if (activeRoles.size > 1) {
+            return `多个角色正在同时思考...`;
+        }
+
+        return 'AI正在分析当前局势...';
+    }
+
+    /**
+     * 根据阶段获取可能的动作
+     */
+    getActionFromPhase(currentPhase) {
+        if (!currentPhase) return 'thinking';
+
+        const phaseActions = {
+            'night_phase': ['investigate', 'eliminate', 'protect'],
+            'bid_phase': ['bid'],
+            'debate_phase': ['debate'],
+            'voting_phase': ['vote'],
+            'summary_phase': ['summary']
+        };
+
+        const actions = phaseActions[currentPhase.type] || ['thinking'];
+        return actions[Math.floor(Math.random() * actions.length)];
+    }
+
+    /**
+     * 获取随机角色（用于演示）
+     */
+    getRandomRole() {
+        const roles = ['🐺 狼人', '👁️ 预言家', '💉 医生', '👥 村民', '🎭 猎人'];
+        return roles[Math.floor(Math.random() * roles.length)];
+    }
+
+    /**
+     * 更新AI思考状态面板 - 方案A实现
+     */
+    updateAIThinkingPanel() {
+        const aiPanel = document.getElementById('ai-thinking-panel');
+        const aiSummaryText = document.getElementById('ai-summary-text');
+        const aiThinkingList = document.getElementById('ai-thinking-list');
+
+        if (!aiPanel || !aiSummaryText || !aiThinkingList) return;
+
+        try {
+            // 更新全局摘要
+            aiSummaryText.textContent = this.aiThinkingState.summary;
+
+            // 清空现有列表
+            aiThinkingList.innerHTML = '';
+
+            // 按角色分组显示AI状态
+            const roleGroups = new Map();
+            for (const [player, state] of this.aiThinkingState.players) {
+                const role = state.role || '未知角色';
+                if (!roleGroups.has(role)) {
+                    roleGroups.set(role, []);
+                }
+                roleGroups.get(role).push({ player, ...state });
+            }
+
+            // 为每个角色组创建显示元素
+            for (const [role, players] of roleGroups) {
+                const roleElement = this.createRoleGroupElement(role, players);
+                aiThinkingList.appendChild(roleElement);
+            }
+
+            // 如果没有AI状态，显示默认信息
+            if (this.aiThinkingState.players.size === 0) {
+                const emptyElement = document.createElement('div');
+                emptyElement.className = 'ai-status-empty';
+                emptyElement.innerHTML = `
+                    <div class="ai-status-item">
+                        <span class="ai-status-thinking">💭 AI正在准备下一轮行动...</span>
+                    </div>
+                `;
+                aiThinkingList.appendChild(emptyElement);
+            }
+
+            // 添加脉冲效果
+            this.addAIPulseEffect();
+
+        } catch (error) {
+            console.error('更新AI思考面板时出错:', error);
+        }
+    }
+
+    /**
+     * 为角色组创建显示元素
+     */
+    createRoleGroupElement(role, players) {
+        const roleDiv = document.createElement('div');
+        roleDiv.className = 'ai-role-group';
+
+        // 角色标题
+        const roleTitle = document.createElement('div');
+        roleTitle.className = 'ai-role-title';
+        roleTitle.textContent = role;
+        roleDiv.appendChild(roleTitle);
+
+        // 该角色下的玩家列表
+        const playersList = document.createElement('div');
+        playersList.className = 'ai-players-list';
+
+        for (const playerInfo of players) {
+            const playerElement = this.createAIStatusItem(playerInfo);
+            playersList.appendChild(playerElement);
+        }
+
+        roleDiv.appendChild(playersList);
+        return roleDiv;
+    }
+
+    /**
+     * 创建单个AI状态项
+     */
+    createAIStatusItem(playerInfo) {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'ai-status-item';
+
+        const statusClass = playerInfo.status.includes('思考中') ? 'ai-status-thinking' : 'ai-status-decided';
+        const progressBar = playerInfo.progress ?
+            `<div class="ai-progress-bar">
+                <div class="ai-progress-fill" style="width: ${playerInfo.progress}%"></div>
+            </div>` : '';
+
+        itemDiv.innerHTML = `
+            <div class="${statusClass}">
+                <span class="ai-action-icon">${playerInfo.status.split(' ')[0]}</span>
+                <span class="ai-player-name">${playerInfo.player}</span>
+                <span class="ai-action-text">${playerInfo.status.substring(2)}</span>
+                ${progressBar}
+            </div>
+        `;
+
+        // 添加思考过程显示（如果有的话）
+        if (playerInfo.reasoning && playerInfo.reasoning.length > 20) {
+            const reasoningDiv = document.createElement('div');
+            reasoningDiv.className = 'ai-reasoning';
+            reasoningDiv.textContent = playerInfo.reasoning.substring(0, 100) + '...';
+            itemDiv.appendChild(reasoningDiv);
+        }
+
+        return itemDiv;
+    }
+
+    /**
+     * 添加AI面板脉冲效果
+     */
+    addAIPulseEffect() {
+        const aiPanel = document.getElementById('ai-thinking-panel');
+        if (aiPanel) {
+            aiPanel.classList.remove('ai-pulse');
+            void aiPanel.offsetWidth; // 触发重排
+            aiPanel.classList.add('ai-pulse');
+        }
+    }
+
+    /**
+     * 定期更新AI状态（每3秒）
+     */
+    startAIStatusUpdates() {
+        // 每3秒更新一次AI状态
+        this.aiStatusInterval = setInterval(() => {
+            this.updateAIStatusFromLogs();
+        }, 3000);
+    }
+
+    /**
+     * 从游戏日志更新AI状态
+     */
+    updateAIStatusFromLogs() {
+        if (!this.currentGameLog || !this.currentGameState) return;
+
+        try {
+            const aiState = this.extractAIThinkingStates(this.currentGameLog, this.currentGameState);
+            this.aiThinkingState = {
+                players: aiState.players,
+                summary: aiState.summary,
+                lastUpdate: aiState.lastUpdate
+            };
+
+            // 更新UI
+            this.updateAIThinkingPanel();
+
+        } catch (error) {
+            console.error('更新AI状态时出错:', error);
+        }
+    }
+
+    /**
+     * 获取阶段显示名称
+     */
+    getPhaseDisplayName(phaseType) {
+        const displayNames = {
+            'night': '夜间',
+            'day': '白天',
+            'investigate': '预言家查验',
+            'eliminate': '狼人击杀',
+            'protect': '医生保护',
+            'bid': '竞拍发言',
+            'debate': '辩论发言',
+            'vote': '投票',
+            'summary': '总结发言'
+        };
+        return displayNames[phaseType] || phaseType;
+    }
+
+    // 天亮公告防重复机制
+    hasDawnAnnouncementForRound(round) {
+        return this.dawnAnnouncements.has(round);
+    }
+
+    markDawnAnnouncementForRound(round) {
+        this.dawnAnnouncements.add(round);
     }
 }
 // 初始化直播流

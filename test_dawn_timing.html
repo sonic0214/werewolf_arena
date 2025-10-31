@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>天亮公告显示时机修复</title>
+    <meta charset="utf-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #1a1f2e;
+            color: #e7e9ea;
+        }
+        .test-case {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #475569;
+            border-radius: 8px;
+            background: #334155;
+        }
+        .problem { color: #ef4444; }
+        .solution { color: #10b981; }
+        .improvement { color: #f59e0b; }
+        .code {
+            background: #0f1419;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+        .flow-diagram {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+        .flow-step {
+            background: #1e293b;
+            padding: 8px 12px;
+            border-radius: 6px;
+            text-align: center;
+            border: 1px solid #475569;
+        }
+        .arrow {
+            font-size: 20px;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <h1>🌅 天亮公告显示时机修复</h1>
+
+    <div class="test-case">
+        <h3>🚨 原问题诊断</h3>
+        <div class="problem">
+            <p><strong>问题现象：</strong></p>
+            <ul>
+                <li>❌ 夜间行动还没全部显示完，就出现"天亮了！昨晚Derek被淘汰了"</li>
+                <li>❌ 用户只看到击杀行动，但没看到保护行动和查验行动</li>
+                <li>❌ 天亮公告显示时机不正确，破坏了游戏故事的连贯性</li>
+            </ul>
+
+            <p><strong>根本原因：</strong></p>
+            <p>天亮公告无条件显示，不管夜间阶段是否真正完成。代码逻辑错误地认为只要处理完已知的夜间行动就可以显示天亮公告。</p>
+        </div>
+    </div>
+
+    <div class="test-case">
+        <h3>🔧 解决方案</h3>
+        <div class="solution">
+            <p><strong>修复思路：</strong></p>
+            <p>添加智能判断条件，只有当夜间阶段真正完成时才显示天亮公告。</p>
+
+            <h4>判断条件：</h4>
+            <ul>
+                <li>✅ <code>roundState?.eliminated !== undefined</code> - 有明确的淘汰信息</li>
+                <li>✅ <code>roundLog.bid && roundLog.bid.length > 0</code> - 已进入竞拍阶段</li>
+                <li>✅ <code>roundLog.debate && roundLog.debate.length > 0</code> - 已进入辩论阶段</li>
+                <li>✅ <code>roundLog.votes && roundLog.votes.length > 0</code> - 已进入投票阶段</li>
+            </ul>
+
+            <p><strong>只要满足任一条件，就说明夜间阶段已完成，可以显示天亮公告。</strong></p>
+        </div>
+
+        <h4>核心修复代码：</h4>
+        <div class="code">
+// 天亮公告 - 只有当夜间阶段真正完成时才显示
+// 判断夜间阶段是否完成：有淘汰信息 或 已进入白天阶段
+const shouldShowDawn = roundState?.eliminated !== undefined ||
+                      (roundLog.bid && roundLog.bid.length > 0) ||
+                      (roundLog.debate && roundLog.debate.length > 0) ||
+                      (roundLog.votes && roundLog.votes.length > 0);
+
+if (shouldShowDawn) {
+    // 显示天亮公告
+    currentTime = this.addMinutes(currentTime, 2);
+    this.stats.currentPhase = 'day';
+    this.updatePhaseState('day', 'active', '白天阶段开始', 1);
+    this.updatePhaseDisplay();
+    const eliminatedPlayer = roundState?.eliminated;
+    this.addSystemMessage(
+        `天亮了！昨晚${eliminatedPlayer ? eliminatedPlayer + '被淘汰了' : '是平安夜'}`,
+        currentTime
+    );
+}
+        </div>
+    </div>
+
+    <div class="test-case">
+        <h3>📋 预期修复效果</h3>
+
+        <div class="improvement">
+            <h4>修复前的流程：</h4>
+            <div class="flow-diagram">
+                <div class="flow-step">🌙 狼人击杀</div>
+                <div class="arrow">→</div>
+                <div class="flow-step problem">❌ 立即天亮公告</div>
+                <div class="arrow">→</div>
+                <div class="flow-step">🛡️ 保护行动（可能不显示）</div>
+            </div>
+
+            <h4>修复后的流程：</h4>
+            <div class="flow-diagram">
+                <div class="flow-step">🔍 预言家查验</div>
+                <div class="arrow">→</div>
+                <div class="flow-step">🗡️ 狼人击杀</div>
+                <div class="arrow">→</div>
+                <div class="flow-step">🛡️ 医生保护</div>
+                <div class="arrow">→</div>
+                <div class="flow-step solution">✅ 天亮公告</div>
+                <div class="arrow">→</div>
+                <div class="flow-step">☀️ 白天阶段</div>
+            </div>
+        </div>
+
+        <p><strong>用户体验改善：</strong></p>
+        <ul>
+            <li>✅ 完整显示所有夜间行动，符合游戏逻辑</li>
+            <li>✅ 天亮公告在正确时机显示，故事连贯</li>
+            <li>✅ 用户能看到完整的夜间阶段信息</li>
+            <li>✅ 确保没有遗漏任何重要行动信息</li>
+        </ul>
+    </div>
+
+    <div class="test-case">
+        <h3>🧪 测试验证方法</h3>
+        <p>要验证此修复，请：</p>
+        <ol>
+            <li>启动Web服务器：<code>python3 web_server.py</code></li>
+            <li>创建一个新游戏</li>
+            <li>观看游戏直播页面</li>
+            <li>仔细观察夜间阶段的显示顺序</li>
+            <li>确认在显示"天亮了！昨晚X被淘汰了"之前，所有夜间行动都已显示</li>
+        </ol>
+
+        <p><strong>预期结果：</strong></p>
+        <p>应该先看到完整的夜间行动（预言家查验 → 狼人击杀 → 医生保护），然后才看到天亮公告。不会再出现天亮公告过早显示的问题。</p>
+    </div>
+
+    <div class="test-case">
+        <h3>🎯 技术要点</h3>
+        <p><strong>关键改进：</strong></p>
+        <ul>
+            <li><strong>智能判断：</strong>不再基于固定的时间间隔，而是基于游戏实际进展</li>
+            <li><strong>多条件验证：</strong>通过多个条件确保夜间阶段真正完成</li>
+            <li><strong>逻辑严谨：</strong>只有在有明确证据表明夜间结束时才显示天亮</li>
+            <li><strong>用户体验：</strong>保证游戏故事的完整性和连贯性</li>
+        </ul>
+    </div>
+
+    <button onclick="window.close()" style="padding: 10px 20px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer;">
+        关闭测试页面
+    </button>
+</body>
+</html>

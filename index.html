@@ -85,6 +85,8 @@
         border: 1px solid #3b82f6;
         border-radius: 20px;
         font-weight: 600;
+        position: relative;
+        overflow: hidden;
     }
 
     .phase-icon {
@@ -95,6 +97,29 @@
         color: #93c5fd;
         font-size: 14px;
     }
+
+    /* 阶段执行状态 */
+    .phase-status {
+        color: #fbbf24;
+        font-size: 12px;
+        margin-left: 8px;
+        padding: 2px 6px;
+        background: rgba(251, 191, 36, 0.2);
+        border-radius: 10px;
+        animation: pulse-phase 2s infinite;
+    }
+
+    @keyframes pulse-phase {
+        0%, 100% { opacity: 0.8; }
+        50% { opacity: 1; }
+    }
+
+    .phase-status.night { color: #60a5fa; background: rgba(96, 165, 250, 0.2); }
+    .phase-status.day { color: #fbbf24; background: rgba(251, 191, 36, 0.2); }
+    .phase-status.bid { color: #34d399; background: rgba(52, 211, 153, 0.2); }
+    .phase-status.debate { color: #a78bfa; background: rgba(167, 139, 250, 0.2); }
+    .phase-status.vote { color: #f87171; background: rgba(248, 113, 113, 0.2); }
+    .phase-status.summary { color: #fb923c; background: rgba(251, 146, 60, 0.2); }
 
     .time-display {
         color: #a0aec0;
@@ -468,6 +493,198 @@
         text-align: right;
     }
 
+    /* 当前阶段状态面板 */
+    .current-phase-panel {
+        padding: 16px;
+        border-top: 1px solid #334155;
+        margin-top: auto;
+    }
+
+    .current-phase-panel h4 {
+        color: #f1f5f9;
+        font-size: 14px;
+        margin-bottom: 12px;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        justify-content: center;
+    }
+
+    .phase-info {
+        background: #334155;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 8px;
+    }
+
+    .phase-name {
+        font-size: 16px;
+        font-weight: 600;
+        color: #f1f5f9;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .phase-progress {
+        width: 100%;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 2px;
+        overflow: hidden;
+        margin-bottom: 8px;
+    }
+
+    .phase-progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+        border-radius: 2px;
+        transition: width 0.5s ease;
+        width: 0%;
+    }
+
+    .phase-details {
+        font-size: 12px;
+        color: #9ca3af;
+        line-height: 1.4;
+    }
+
+    .phase-detail-item {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 4px;
+        padding: 4px 0;
+    }
+
+    .phase-detail-label {
+        color: #6b7280;
+    }
+
+    .phase-detail-value {
+        color: #f1f5f9;
+        font-weight: 500;
+    }
+
+    /* 阶段动画效果 */
+    .phase-info.updating {
+        animation: phaseUpdate 0.3s ease;
+    }
+
+    @keyframes phaseUpdate {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.02); }
+        100% { transform: scale(1); }
+    }
+
+    /* AI思考状态面板样式 */
+    .ai-status-summary {
+        padding: 8px 12px;
+        background: rgba(59, 130, 246, 0.1);
+        border: 1px solid #3b82f6;
+        border-radius: 6px;
+        margin-bottom: 12px;
+        text-align: center;
+    }
+
+    #ai-summary-text {
+        color: #93c5fd;
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    .ai-player-status {
+        margin-bottom: 10px;
+        padding: 10px;
+        background: #1e293b;
+        border: 1px solid #475569;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+    }
+
+    .ai-player-status:hover {
+        background: #2d3748;
+        transform: translateX(2px);
+    }
+
+    .ai-player-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 6px;
+    }
+
+    .ai-player-icon {
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-size: 12px;
+    }
+
+    .ai-player-name {
+        font-weight: 600;
+        color: #f1f5f9;
+        font-size: 13px;
+    }
+
+    .ai-player-status-text {
+        color: #94a3b8;
+        font-size: 11px;
+        margin-bottom: 4px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .ai-status-indicator {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #10b981;
+    }
+
+    .ai-status-indicator.thinking {
+        background: #f59e0b;
+        animation: pulse 2s infinite;
+    }
+
+    .ai-status-indicator.waiting {
+        background: #6b7280;
+    }
+
+    .ai-status-indicator.completed {
+        background: #10b981;
+    }
+
+    .ai-thinking-content {
+        font-size: 12px;
+        color: #d1d5db;
+        line-height: 1.3;
+        font-style: italic;
+        max-height: 60px;
+        overflow-y: auto;
+        padding: 4px 6px;
+        background: rgba(55, 65, 81, 0.3);
+        border-left: 3px solid #6b7280;
+        border-radius: 4px;
+        word-break: break-word;
+    }
+
+    /* AI状态颜色 */
+    .ai-player-status.werewolf { border-color: #dc3545; }
+    .ai-player-status.seer { border-color: #28a745; }
+    .ai-player-status.doctor { border-color: #007bff; }
+    .ai-player-status.villager { border-color: #6b7280; }
+
+    .ai-player-status.werewolf .ai-player-icon { background: rgba(220, 53, 69, 0.2); color: #ef4444; }
+    .ai-player-status.seer .ai-player-icon { background: rgba(40, 167, 69, 0.2); color: #10b981; }
+    .ai-player-status.doctor .ai-player-icon { background: rgba(0, 123, 255, 0.2); color: #007bff; }
+    .ai-player-status.villager .ai-player-icon { background: rgba(107, 114, 128, 0.2); color: #9ca3af; }
+
     /* 调试面板 */
     .debug-panel {
         position: fixed;
@@ -621,7 +838,8 @@
         <div class="header-center">
             <div id="current-phase" class="phase-indicator">
                 <span class="phase-icon">🌙</span>
-                <span class="phase-text">Round 0 - Night Phase</span>
+                <span class="phase-text">第0轮 - 夜间阶段</span>
+                <span id="phase-status" class="phase-status">初始化中...</span>
             </div>
             <div id="game-time" class="time-display">14:30:00</div>
         </div>
@@ -678,6 +896,47 @@
             <div id="voting-results" class="voting-panel hidden">
                 <h4>投票结果</h4>
                 <div id="vote-chart"></div>
+            </div>
+
+            <!-- 当前阶段状态面板 -->
+            <div id="current-phase-panel" class="current-phase-panel">
+                <h4>🎯 当前阶段</h4>
+                <div id="phase-info" class="phase-info">
+                    <div class="phase-name">
+                        <span id="phase-type-icon">🌙</span>
+                        <span id="phase-type-name">夜间阶段</span>
+                    </div>
+                    <div class="phase-progress">
+                        <div id="phase-progress-bar" class="phase-progress-bar"></div>
+                    </div>
+                    <div class="phase-details">
+                        <div class="phase-detail-item">
+                            <span class="phase-detail-label">状态:</span>
+                            <span id="phase-status-detail" class="phase-detail-value">准备中</span>
+                        </div>
+                        <div class="phase-detail-item">
+                            <span class="phase-detail-label">开始时间:</span>
+                            <span id="phase-start-time" class="phase-detail-value">--:--</span>
+                        </div>
+                        <div class="phase-detail-item">
+                            <span class="phase-detail-label">预计剩余:</span>
+                            <span id="phase-remaining" class="phase-detail-value">--:--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI思考状态面板 -->
+            <div id="ai-thinking-panel" class="current-phase-panel">
+                <h4>🤖 AI思考状态</h4>
+                <div id="ai-thinking-status" class="phase-info">
+                    <div class="ai-status-summary">
+                        <span id="ai-summary-text">AI正在思考中...</span>
+                    </div>
+                    <div id="ai-thinking-list">
+                        <!-- AI角色状态将在这里动态生成 -->
+                    </div>
+                </div>
             </div>
         </aside>
     </main>

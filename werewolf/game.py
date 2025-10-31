@@ -324,15 +324,25 @@ class GameMaster:
           f"The Werewolves removed {eliminated_player} from the game during the"
           " night."
       )
+
+      # 只有在真正淘汰时才从游戏状态中移除玩家
+      for name in self.this_round.players:
+        player = self.state.players[name]
+        if player.gamestate:
+          player.gamestate.remove_player(eliminated_player)
+        player.add_announcement(announcement)
     else:
       announcement = "No one was removed from the game during the night."
-    tqdm.tqdm.write(announcement)
+      # 保护成功时，不移除任何玩家，但需要更新游戏状态
+      for name in self.this_round.players:
+        player = self.state.players[name]
+        # 只有当淘汰者不为空且不等于保护者时才移除
+        if self.this_round.eliminated and self.this_round.eliminated != self.this_round.protected:
+          if player.gamestate:
+            player.gamestate.remove_player(self.this_round.eliminated)
+        player.add_announcement(announcement)
 
-    for name in self.this_round.players:
-      player = self.state.players[name]
-      if player.gamestate:
-        player.gamestate.remove_player(self.this_round.eliminated)
-      player.add_announcement(announcement)
+    tqdm.tqdm.write(announcement)
     self._progress()
 
   def run_round(self):

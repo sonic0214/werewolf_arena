@@ -7,6 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional, List
 from pathlib import Path
 import random
+from .timing_loader import get_timing_config, TimingConfig
 
 
 class GameSettings(BaseSettings):
@@ -15,14 +16,33 @@ class GameSettings(BaseSettings):
     max_debate_turns: int = 5  # 增加辩论轮数到5轮
     default_threads: int = 2
     retries: int = 3
-    frontend_refresh_interval: int = 5000  # 降低刷新频率到5秒
     run_synthetic_votes: bool = True
 
-    # 新增延迟配置
-    action_delay: float = 2.0  # 每个动作之间延迟2秒
-    debate_delay: float = 3.0  # 每次发言延迟3秒
-    night_action_delay: float = 5.0  # 夜间行动延迟5秒
-    summary_delay: float = 3.0  # 总结延迟3秒
+    @property
+    def timing(self) -> TimingConfig:
+        """获取延迟配置"""
+        return get_timing_config()
+
+    # 为了向后兼容，保留这些属性但会从timing配置中读取
+    @property
+    def frontend_refresh_interval(self) -> int:
+        return self.timing.frontend_refresh_interval
+
+    @property
+    def action_delay(self) -> float:
+        return self.timing.action_delay
+
+    @property
+    def debate_delay(self) -> float:
+        return self.timing.debate_delay
+
+    @property
+    def night_action_delay(self) -> float:
+        return self.timing.night_action_delay
+
+    @property
+    def summary_delay(self) -> float:
+        return self.timing.summary_delay
 
 
 class LLMSettings(BaseSettings):

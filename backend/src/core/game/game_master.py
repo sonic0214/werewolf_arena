@@ -26,6 +26,7 @@ from src.core.models.game_state import Round, State
 from src.core.models.logs import RoundLog, VoteLog
 from src.config.settings import MAX_DEBATE_TURNS, RUN_SYNTHETIC_VOTES
 from src.config.settings import settings
+from src.config.timing_loader import apply_game_mode, get_delay
 
 def get_max_bids(d):
   """Gets all the keys with the highest value in the dictionary."""
@@ -41,10 +42,15 @@ class GameMaster:
       state: State,
       num_threads: int = 1,
       on_progress: Optional[Callable[[State, List[RoundLog]], None]] = None,
+      game_mode: str = "normal",  # normal, fast, slow, demo
   ) -> None:
     """Initialize the Werewolf game.
 
     Args:
+      state: 游戏状态
+      num_threads: 线程数
+      on_progress: 进度回调函数
+      game_mode: 游戏模式，影响延迟速度
     """
     self.state = state
     self.current_round_num = len(self.state.rounds) if self.state.rounds else 0
@@ -52,6 +58,11 @@ class GameMaster:
     self.logs: List[RoundLog] = []
     self.on_progress = on_progress
     self.should_stop = False  # 添加停止标志
+
+    # 应用游戏模式延迟倍数
+    self.delay_multiplier = apply_game_mode(game_mode)
+    self.game_mode = game_mode
+    print(f"🎮 游戏模式: {game_mode} (延迟倍数: {self.delay_multiplier}x)")
 
   def _progress(self) -> None:
     if self.on_progress:
@@ -67,8 +78,9 @@ class GameMaster:
 
   def eliminate(self):
     """Werewolves choose a player to eliminate."""
-    # 添加夜间行动延迟
-    time.sleep(settings.game.night_action_delay)
+    # 添加夜间行动延迟（使用配置文件）
+    delay = get_delay("night_action", self.delay_multiplier)
+    time.sleep(delay)
 
     werewolves_alive = [
         w for w in self.state.werewolves if w.name in self.this_round.players
@@ -115,8 +127,9 @@ class GameMaster:
     if self.state.doctor.name not in self.this_round.players:
       return  # Doctor no longer in the game
 
-    # 添加夜间行动延迟
-    time.sleep(settings.game.night_action_delay)
+    # 添加夜间行动延迟（使用配置文件）
+    delay = get_delay("night_action", self.delay_multiplier)
+    time.sleep(delay)
 
     protect, log = self.state.doctor.save()
     self.this_round_log.protect = log
@@ -145,8 +158,9 @@ class GameMaster:
     if self.state.seer.name not in self.this_round.players:
       return  # Seer no longer in the game
 
-    # 添加夜间行动延迟
-    time.sleep(settings.game.night_action_delay)
+    # 添加夜间行动延迟（使用配置文件）
+    delay = get_delay("night_action", self.delay_multiplier)
+    time.sleep(delay)
 
     unmask, log = self.state.seer.unmask()
     self.this_round_log.investigate = log
@@ -257,8 +271,9 @@ class GameMaster:
             tqdm.tqdm.write(f"{player_name} summary: {summary}")
             self.this_round_log.summaries.append((player_name, log))
 
-            # 添加总结延迟
-            time.sleep(settings.game.summary_delay)
+            # 添加总结延迟（使用配置文件）
+            delay = get_delay("summary", self.delay_multiplier)
+            time.sleep(delay)
 
         self._progress()
 
@@ -288,8 +303,9 @@ class GameMaster:
       self.this_round.debate.append([next_speaker, dialogue])
       tqdm.tqdm.write(f"{next_speaker} ({player.role}): {dialogue}")
 
-      # 添加辩论延迟
-      time.sleep(settings.game.debate_delay)
+      # 添加辩论延迟（使用配置文件）
+      delay = get_delay("debate", self.delay_multiplier)
+      time.sleep(delay)
 
       self._progress()
 

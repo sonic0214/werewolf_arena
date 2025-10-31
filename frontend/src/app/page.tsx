@@ -1,21 +1,24 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Select } from '@/components/ui/Select';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
-import { useGameActions, useGameSettings, useGameLoading, useGameError } from '@/lib/store/gameStore';
+import { useGameActions, useGameSettings, useGameLoading, useGameError, useCurrentGame } from '@/lib/store/gameStore';
 import { useModels } from '@/lib/hooks/useModels';
 import { ModelInfo } from '@/types/api';
 
 export default function Home() {
+  const router = useRouter();
   const { models, loading: modelsLoading } = useModels();
   const { startGame, setGameSettings } = useGameActions();
   const gameSettings = useGameSettings();
   const gameLoading = useGameLoading();
   const gameError = useGameError();
+  const currentGame = useCurrentGame();
 
   const [villagerModel, setVillagerModel] = useState<string>('glmz1-flash');
   const [werewolfModel, setWerewolfModel] = useState<string>('glmz1-flash');
@@ -32,6 +35,14 @@ export default function Home() {
       }
     }
   }, [models]);
+
+  // Auto-redirect to live game page when game starts successfully
+  useEffect(() => {
+    if (currentGame && currentGame.session_id && gameLoading === 'success') {
+      console.log('Game started successfully, redirecting to live page:', currentGame.session_id);
+      router.push(`/live/${currentGame.session_id}`);
+    }
+  }, [currentGame, gameLoading, router]);
 
   const handleStartGame = async () => {
     try {

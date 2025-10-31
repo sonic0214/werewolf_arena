@@ -1,0 +1,18 @@
+Villagers: glm/glm-4 versus Werwolves:  gpt-4-turbo-2024-04-09
+Ginger has role Seer
+Leah has role Doctor
+Hayley has role Werewolf
+Sam has role Villager
+Will has role Villager
+Isaac has role Villager
+STARTING ROUND: 0
+The Werewolves are picking someone to remove from the game.
+Retrying due to Exception: The api_key client option must be set either by passing api_key to the client or by setting the OPENAI_API_KEY environment variable
+Raw response snippet: None
+Retrying due to Exception: The api_key client option must be set either by passing api_key to the client or by setting the OPENAI_API_KEY environment variable
+Raw response snippet: None
+Retrying due to Exception: The api_key client option must be set either by passing api_key to the client or by setting the OPENAI_API_KEY environment variable
+Raw response snippet: None
+Error encountered during game: Eliminate did not return a valid player.
+Game logs saved to: /Users/admin/Project/werewolf_arena/logs/session_20251031_034109
+View in browser: http://localhost:8081/?session_id=session_20251031_034109

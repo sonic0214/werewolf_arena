@@ -136,16 +136,35 @@ export const useGameStore = create<GameStoreState>()(
         try {
           const response = await gamesAPI.startGame(request);
 
+          // Create a basic game state from the start response
+          const initialGameState = {
+            session_id: response.session_id,
+            status: 'running' as const,
+            current_round: undefined,
+            rounds: [],
+            players: [],
+            winner: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            settings: {
+              villager_models: [request.villager_model],
+              werewolf_models: [request.werewolf_model],
+              player_names: request.player_names || [],
+              discussion_time_minutes: request.discussion_time_minutes || 5,
+              max_rounds: request.max_rounds || 10
+            }
+          };
+
           set({
             loading: 'success',
-            currentGame: response.game_view.game_state,
-            gameView: response.game_view,
+            currentGame: initialGameState,
+            gameView: null, // API doesn't return game_view in current format
             isGameRunning: true,
             message: 'Game started successfully!',
           });
 
           // Add to history
-          get().addToHistory(response.game_view.game_state);
+          get().addToHistory(initialGameState);
 
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Failed to start game';
@@ -181,17 +200,78 @@ export const useGameStore = create<GameStoreState>()(
       },
 
       getGameStatus: async (sessionId) => {
+        console.log('getGameStatus called with sessionId:', sessionId);
         const { gamesAPI } = await import('@/lib/api/games');
 
         try {
+          console.log('Calling gamesAPI.getGameStatus...');
           const response = await gamesAPI.getGameStatus(sessionId);
+          console.log('API response:', response);
+
+          if (!response) {
+            console.log('No response from API');
+            set({ error: 'No response from API' });
+            return;
+          }
+
+          // Handle both wrapped and unwrapped API responses
+          const data = response.data || response; // Handle both formats
+          console.log('Processed data:', data);
+
+          if (!data) {
+            console.log('No data in response');
+            set({ error: 'No data in API response' });
+            return;
+          }
+
+          // Convert flat API response to GameState format
+          const gameState = {
+            session_id: data.session_id,
+            status: data.status,
+            current_round: data.current_round ? {
+              id: data.current_round.toString(),
+              phase: {
+                name: 'Unknown',
+                type: 'day',
+                number: data.current_round
+              }
+            } : undefined,
+            players: data.players?.map(p => ({
+              id: Math.random(), // Generate temporary ID
+              name: p.name,
+              role: p.role.toLowerCase(),
+              alive: p.alive,
+              model: p.model
+            })) || [],
+            rounds: data.rounds?.map((r, idx) => ({
+              id: r.round_number.toString(),
+              phase: {
+                name: 'Round ' + r.round_number,
+                type: 'day',
+                number: r.round_number
+              },
+              players: r.players_alive || [],
+              discussions: [],
+              votes: [],
+              night_actions: []
+            })) || [],
+            winner: data.winner || null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            settings: {
+              villager_models: [],
+              werewolf_models: [],
+              player_names: data.players?.map(p => p.name) || [],
+              discussion_time_minutes: 5,
+              max_rounds: 10
+            }
+          };
 
           set({
-            currentGame: response.game_state || null,
-            gameView: response.game_view || null,
-            isGameRunning: response.status === 'running',
-            currentRound: response.game_state?.current_round?.id ?
-              parseInt(response.game_state.current_round.id) : 0,
+            currentGame: gameState,
+            gameView: null, // API doesn't return game_view in current format
+            isGameRunning: data.status === 'running',
+            currentRound: data.current_round || 0,
           });
 
         } catch (error) {
@@ -225,16 +305,32 @@ export const useGameHistory = () => useGameStore((state) => state.gameHistory);
 export const useWebSocketStatus = () => useGameStore((state) => state.isWebSocketConnected);
 
 // Actions
-export const useGameActions = () => useGameStore((state) => ({
-  setGameSettings: state.setGameSettings,
-  setCurrentGame: state.setCurrentGame,
-  setGameView: state.setGameView,
-  setLoading: state.setLoading,
-  setError: state.setError,
-  setMessage: state.setMessage,
-  setSelectedPlayer: state.setSelectedPlayer,
-  startGame: state.startGame,
-  stopGame: state.stopGame,
-  getGameStatus: state.getGameStatus,
-  reset: state.reset,
-}));
+export const useGameActions = () => {
+  const setGameSettings = useGameStore((state) => state.setGameSettings);
+  const setCurrentGame = useGameStore((state) => state.setCurrentGame);
+  const setGameView = useGameStore((state) => state.setGameView);
+  const setLoading = useGameStore((state) => state.setLoading);
+  const setError = useGameStore((state) => state.setError);
+  const setMessage = useGameStore((state) => state.setMessage);
+  const setWebSocketConnected = useGameStore((state) => state.setWebSocketConnected);
+  const setSelectedPlayer = useGameStore((state) => state.setSelectedPlayer);
+  const startGame = useGameStore((state) => state.startGame);
+  const stopGame = useGameStore((state) => state.stopGame);
+  const getGameStatus = useGameStore((state) => state.getGameStatus);
+  const reset = useGameStore((state) => state.reset);
+
+  return {
+    setGameSettings,
+    setCurrentGame,
+    setGameView,
+    setLoading,
+    setError,
+    setMessage,
+    setWebSocketConnected,
+    setSelectedPlayer,
+    startGame,
+    stopGame,
+    getGameStatus,
+    reset,
+  };
+};

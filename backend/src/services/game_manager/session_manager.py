@@ -101,6 +101,24 @@ class GameSessionManager:
         # 创建进度保存回调
         def _save_progress(state: State, logs):
             save_game(state, logs, log_dir)
+            # 发送WebSocket通知 - 使用线程池执行器避免事件循环冲突
+            try:
+                import concurrent.futures
+
+                def run_async_in_thread():
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    try:
+                        loop.run_until_complete(_notify_game_update(session_id, state))
+                    finally:
+                        loop.close()
+
+                executor = ThreadPoolExecutor(max_workers=1)
+                executor.submit(run_async_in_thread)
+                executor.shutdown(wait=False)
+
+            except Exception as e:
+                print(f"WebSocket notification error: {e}")
 
         # 创建游戏主控
         gamemaster = GameMaster(
@@ -182,6 +200,29 @@ class GameSessionManager:
             "log_directory": session.log_dir,
         }
 
+
+# WebSocket通知函数
+async def _notify_game_update(session_id: str, state: State):
+    """发送游戏状态更新通知"""
+    try:
+        # 延迟导入避免循环依赖
+        from src.api.v1.routes.websocket import notify_game_update
+
+        game_data = {
+            "game_state": state.to_dict(),
+            "status": "running" if not state.winner else "completed"
+        }
+
+        await notify_game_update(session_id, game_data)
+
+        # 如果游戏结束，发送游戏完成通知
+        if state.winner and state.rounds:
+            final_round = state.rounds[-1].to_dict() if state.rounds else None
+            from src.api.v1.routes.websocket import notify_game_complete
+            await notify_game_complete(session_id, state.winner, final_round, state.to_dict())
+
+    except Exception as e:
+        print(f"Failed to send WebSocket notification: {e}")
 
 # 全局实例
 game_manager = GameSessionManager()

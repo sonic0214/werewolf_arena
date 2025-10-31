@@ -50,12 +50,8 @@ class TimingManager {
      */
     async loadConfig() {
         try {
-            const response = await fetch('/api/v1/config/timing');
-            if (response.ok) {
-                const config = await response.json();
-                Object.assign(TIMING_CONFIG, config);
-                console.log('✅ 已加载服务器延迟配置', config);
-            }
+            // v1系统不支持此API端点，使用默认配置
+            console.log('✅ 使用默认延迟配置 (v1系统)');
         } catch (error) {
             console.warn('⚠️ 无法加载服务器延迟配置，使用默认配置', error);
         }

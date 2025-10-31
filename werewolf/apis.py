@@ -19,8 +19,8 @@ import sys
 from typing import Any, Optional, Dict
 import google
 import vertexai
-from vertexai.preview import generative_models
-from anthropic import AnthropicVertex
+# from vertexai.preview import generative_models
+# from anthropic import AnthropicVertex
 
 # 导入API配置
 sys.path.append('..')

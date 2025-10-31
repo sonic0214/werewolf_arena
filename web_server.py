@@ -312,23 +312,61 @@ def start_game():
 @app.route('/game-status/<session_id>')
 def game_status(session_id):
     """获取游戏状态"""
-    if session_id not in running_games:
+    try:
+        if session_id not in running_games:
+            return jsonify({
+                'success': False,
+                'error': 'Game not found'
+            }), 404
+
+        game_info = running_games[session_id]
+        log_directory = game_info.get('log_directory', '')
+
+        # 基本状态信息
+        status_data = {
+            'success': True,
+            'session_id': session_id,
+            'status': game_info['status'],
+            'v_model': game_info['v_model'],
+            'w_model': game_info['w_model'],
+            'start_time': game_info['start_time'],
+            'error': game_info.get('error', None)
+        }
+
+        # 尝试从game_complete.json获取详细的玩家和状态信息
+        if log_directory and os.path.exists(log_directory):
+            try:
+                game_complete_file = os.path.join(log_directory, 'game_complete.json')
+                if os.path.exists(game_complete_file):
+                    with open(game_complete_file, 'r', encoding='utf-8') as f:
+                        complete_data = json.load(f)
+
+                        # 添加玩家信息
+                        status_data['players'] = complete_data.get('players', {})
+                        status_data['current_players'] = []
+
+                        # 获取当前存活的玩家
+                        current_round = complete_data.get('rounds', [])
+                        if current_round:
+                            latest_round = current_round[-1]
+                            current_players = latest_round.get('players', [])
+                            status_data['current_players'] = current_players
+
+                        # 添加轮次信息
+                        status_data['current_round'] = len(current_round)
+                        status_data['winner'] = complete_data.get('winner', '')
+                        status_data['rounds'] = current_round
+
+            except Exception as e:
+                print(f"Error reading game_complete.json for {session_id}: {e}")
+
+        return jsonify(status_data)
+
+    except Exception as e:
         return jsonify({
             'success': False,
-            'error': 'Game not found'
-        }), 404
-
-    game_info = running_games[session_id]
-
-    return jsonify({
-        'success': True,
-        'session_id': session_id,
-        'status': game_info['status'],
-        'v_model': game_info['v_model'],
-        'w_model': game_info['w_model'],
-        'start_time': game_info['start_time'],
-        'error': game_info.get('error', None)
-    })
+            'error': str(e)
+        }), 500
 
 @app.route('/stop-game/<session_id>', methods=['POST'])
 def stop_game(session_id):
@@ -528,6 +566,54 @@ def api_config_page():
         return html
     except Exception as e:
         return f"<h1>错误</h1><p>{str(e)}</p>", 500
+
+@app.route('/api/v1/games/<session_id>/logs')
+def get_game_logs(session_id):
+    """获取游戏日志"""
+    try:
+        if session_id not in running_games:
+            return jsonify({
+                'success': False,
+                'error': 'Game not found'
+            }), 404
+
+        game_info = running_games[session_id]
+        log_directory = game_info.get('log_directory', '')
+
+        if not log_directory or not os.path.exists(log_directory):
+            return jsonify([])  # 返回空日志数组
+
+        # 尝试读取游戏日志文件
+        logs = []
+        try:
+            # 查找游戏日志文件
+            game_logs_file = os.path.join(log_directory, 'game_logs.json')
+            if os.path.exists(game_logs_file):
+                with open(game_logs_file, 'r', encoding='utf-8') as f:
+                    logs = json.load(f)
+            else:
+                # 如果没有game_logs.json，尝试其他日志文件
+                for filename in os.listdir(log_directory):
+                    if filename.endswith('.json'):
+                        try:
+                            with open(os.path.join(log_directory, filename), 'r', encoding='utf-8') as f:
+                                log_data = json.load(f)
+                                if isinstance(log_data, list):
+                                    logs = log_data
+                                    break
+                        except:
+                            continue
+        except Exception as e:
+            print(f"Error reading logs for {session_id}: {e}")
+            logs = []
+
+        return jsonify(logs)
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 @app.errorhandler(404)
 def not_found(error):

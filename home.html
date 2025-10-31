@@ -455,14 +455,14 @@
             button.innerHTML = '<span class="loading-spinner"></span>正在启动游戏...';
 
             try {
-                const response = await fetch('http://localhost:8001/api/v1/games/start', {
+                const response = await fetch('http://localhost:8081/start-game', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        villager_model: vModel,
-                        werewolf_model: wModel
+                        v_models: vModel,
+                        w_models: wModel
                     })
                 });
 
@@ -530,7 +530,7 @@
                 refreshBtn.disabled = true;
                 refreshBtn.textContent = '🔄 加载中...';
 
-                const response = await fetch('http://localhost:8001/api/v1/games/');
+                const response = await fetch('http://localhost:8081/list-games');
                 const result = await response.json();
 
                 // 适配新后端数据格式
@@ -628,7 +628,7 @@
             }
 
             try {
-                const response = await fetch(`http://localhost:8001/api/v1/games/${sessionId}/stop`, {
+                const response = await fetch(`http://localhost:8081/stop-game/${sessionId}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

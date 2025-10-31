@@ -4,30 +4,37 @@ import { useGameActions } from '@/lib/store/gameStore';
 import { WebSocketMessage } from '@/types/game';
 
 export function useWebSocket(sessionId?: string) {
-  const actions = useGameActions();
+  const { setWebSocketConnected, setError, setMessage } = useGameActions();
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
 
   // Handle connection
   const connect = useCallback(async () => {
-    if (!sessionId) return false;
+    if (!sessionId) {
+      console.warn('[useWebSocket] No sessionId provided, skipping connection');
+      return false;
+    }
+
+    console.log('[useWebSocket] Attempting to connect with sessionId:', sessionId);
 
     try {
       await wsClient.connect(sessionId);
       reconnectAttempts.current = 0;
+      console.log('[useWebSocket] Connection successful');
       return true;
     } catch (error) {
-      console.error('WebSocket connection failed:', error);
-      actions.setError('Failed to connect to game');
+      console.error('[useWebSocket] Connection failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to connect to game';
+      setError(errorMessage);
       return false;
     }
-  }, [sessionId, actions]);
+  }, [sessionId, setError]);
 
   // Handle disconnection
   const disconnect = useCallback(() => {
     wsClient.disconnect();
-    actions.setWebSocketConnected(false);
-  }, [actions]);
+    setWebSocketConnected(false);
+  }, [setWebSocketConnected]);
 
   // Send message
   const sendMessage = useCallback((event: string, data?: any) => {
@@ -38,6 +45,8 @@ export function useWebSocket(sessionId?: string) {
   useEffect(() => {
     if (!sessionId) return;
 
+    console.log('[useWebSocket] Setting up event handlers');
+
     // Game update handler
     wsClient.on('game_update', (message: WebSocketMessage) => {
       console.log('Game update received:', message);
@@ -47,54 +56,60 @@ export function useWebSocket(sessionId?: string) {
     // Connection handlers
     wsClient.on('connect', () => {
       console.log('WebSocket connected');
-      actions.setWebSocketConnected(true);
-      actions.setMessage('Connected to game');
+      setWebSocketConnected(true);
+      setMessage('Connected to game');
     });
 
     wsClient.on('disconnect', (reason: string) => {
       console.log('WebSocket disconnected:', reason);
-      actions.setWebSocketConnected(false);
+      setWebSocketConnected(false);
 
       if (reason === 'io server disconnect') {
         // Server disconnected, don't try to reconnect
-        actions.setMessage('Connection closed by server');
+        setMessage('Connection closed by server');
       } else {
         // Try to reconnect
         if (reconnectAttempts.current < maxReconnectAttempts) {
           reconnectAttempts.current++;
-          actions.setMessage(`Reconnecting... (${reconnectAttempts.current}/${maxReconnectAttempts})`);
-          setTimeout(connect, 1000 * reconnectAttempts.current);
+          setMessage(`Reconnecting... (${reconnectAttempts.current}/${maxReconnectAttempts})`);
+          setTimeout(() => connect(), 1000 * reconnectAttempts.current);
         } else {
-          actions.setError('Connection lost. Please refresh the page.');
+          setError('Connection lost. Please refresh the page.');
         }
       }
     });
 
     wsClient.on('error', (error: Error) => {
       console.error('WebSocket error:', error);
-      actions.setError(error.message);
+      setError(error.message);
     });
 
     return () => {
+      console.log('[useWebSocket] Cleaning up event handlers');
       wsClient.off('game_update');
       wsClient.off('connect');
       wsClient.off('disconnect');
       wsClient.off('error');
     };
-  }, [sessionId, connect, actions]);
+    // Only depend on sessionId and store setters
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId]);
 
   // Auto-connect when sessionId changes
   useEffect(() => {
-    if (sessionId) {
-      connect();
-    } else {
-      disconnect();
-    }
+    if (!sessionId) return;
+
+    console.log('[useWebSocket] useEffect triggered, connecting...');
+    connect();
 
     return () => {
-      disconnect();
+      console.log('[useWebSocket] useEffect cleanup, disconnecting...');
+      wsClient.disconnect();
+      setWebSocketConnected(false);
     };
-  }, [sessionId, connect, disconnect]);
+    // Only depend on sessionId, not on connect/disconnect functions
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId]);
 
   return {
     connect,

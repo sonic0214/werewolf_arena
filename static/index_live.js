@@ -126,7 +126,7 @@ class WerewolfLiveStream {
             console.log(`[${new Date().toISOString()}] Retrieving data for session: ${this.sessionId}`);
 
             // 从新后端API获取游戏状态
-            const gameStateResponse = await fetch(`http://localhost:8001/api/v1/games/${this.sessionId}`);
+            const gameStateResponse = await fetch(`http://localhost:8081/game-status/${this.sessionId}`);
             if (!gameStateResponse.ok) {
                 throw new Error(`Failed to fetch game state: ${gameStateResponse.status}`);
             }
@@ -136,7 +136,7 @@ class WerewolfLiveStream {
             // 尝试获取日志文件（通过后端日志目录）
             let logs = [];
             try {
-                const logsResponse = await fetch(`http://localhost:8001/api/v1/games/${this.sessionId}/logs`);
+                const logsResponse = await fetch(`http://localhost:8081/api/v1/games/${this.sessionId}/logs`);
                 if (logsResponse.ok) {
                     logs = await logsResponse.json();
                     console.log(`[${new Date().toISOString()}] Retrieved ${logs.length} rounds of logs`);
@@ -1157,7 +1157,7 @@ ${JSON.stringify(message.data, null, 2)}
             statusText.textContent = '停止中';
             statusDot.className = 'status-dot stopping';
 
-            const response = await fetch(`http://localhost:8001/api/v1/games/${this.sessionId}/stop`, {
+            const response = await fetch(`http://localhost:8081/stop-game/${this.sessionId}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1215,7 +1215,7 @@ ${JSON.stringify(message.data, null, 2)}
         if (!this.sessionId) return;
 
         try {
-            const response = await fetch(`http://localhost:8001/api/v1/games/${this.sessionId}`);
+            const response = await fetch(`http://localhost:8081/game-status/${this.sessionId}`);
             const result = await response.json();
 
             if (result.status) {

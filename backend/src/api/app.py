@@ -8,6 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from src.config import settings
+from src.services.llm.client import LLMClient
+from src.services.llm.generator import set_global_llm_client
 
 
 @asynccontextmanager
@@ -17,6 +19,22 @@ async def lifespan(app: FastAPI):
     print("🚀 Starting Werewolf Arena API...")
     print(f"📝 Environment: {settings.environment}")
     print(f"🔧 Debug mode: {settings.debug}")
+
+    # 初始化全局LLM客户端
+    try:
+        llm_client = LLMClient.from_settings(settings)
+        set_global_llm_client(llm_client)
+
+        # 检查LLM提供商健康状态
+        health_status = llm_client.health_check()
+        print(f"🤖 LLM Providers Health: {health_status}")
+
+        print("✅ Global LLM client initialized successfully")
+    except Exception as e:
+        print(f"❌ Failed to initialize LLM client: {e}")
+        print("⚠️  Game functionality will be limited")
+
+    print("🎮 Ready to start games!")
 
     yield
 

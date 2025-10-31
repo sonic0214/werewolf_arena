@@ -4,7 +4,10 @@ Games API Routes
 """
 
 from fastapi import APIRouter, HTTPException, status
-from typing import List
+from typing import List, Dict, Any
+import json
+import os
+from pathlib import Path
 
 from src.api.v1.schemas.game import (
     GameConfigRequest,
@@ -211,3 +214,38 @@ async def delete_game_session(session_id: str):
         "message": f"Session {session_id} deleted successfully",
         "session_id": session_id
     }
+
+
+@router.get("/{session_id}/logs")
+async def get_game_logs(session_id: str):
+    """
+    获取游戏日志
+    Get game logs by session ID
+    """
+    session = game_manager.get_session(session_id)
+
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Game session {session_id} not found"
+        )
+
+    try:
+        # 读取日志文件
+        logs_file = Path(session.log_dir) / "game_logs.json"
+
+        if not logs_file.exists():
+            return []  # 如果日志文件不存在，返回空数组
+
+        with open(logs_file, 'r', encoding='utf-8') as f:
+            content = f.read().strip()
+            if not content:
+                return []  # 如果文件为空，返回空数组
+
+            logs = json.loads(content)
+            return logs if isinstance(logs, list) else []
+
+    except Exception as e:
+        # 如果读取失败，返回空数组而不是抛出错误
+        print(f"Error reading logs for session {session_id}: {e}")
+        return []

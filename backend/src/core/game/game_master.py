@@ -68,9 +68,30 @@ class GameMaster:
     werewolves_alive = [
         w for w in self.state.werewolves if w.name in self.this_round.players
     ]
+
+    if not werewolves_alive:
+      raise ValueError("No werewolves alive to eliminate players.")
+
     wolf = random.choice(werewolves_alive)
     eliminated, log = wolf.eliminate()
     self.this_round_log.eliminate = log
+
+    # 如果返回None，选择一个默认目标
+    if eliminated is None:
+      available_targets = [
+          p for p in self.this_round.players
+          if p != wolf.name and p not in [w.name for w in self.state.werewolves]
+      ]
+      if available_targets:
+        eliminated = random.choice(available_targets)
+        print(f"Warning: {wolf.name} failed to choose target, randomly selected {eliminated}")
+        # 更新日志以反映随机选择
+        log.result = {"remove": eliminated, "reasoning": "Random fallback selection"}
+      else:
+        # 如果没有有效目标，跳过淘汰
+        print(f"Warning: No valid targets for {wolf.name} to eliminate")
+        eliminated = None
+
     if eliminated is not None:
       self.this_round.eliminated = eliminated
       tqdm.tqdm.write(f"{wolf.name} eliminated {eliminated}")
@@ -81,7 +102,7 @@ class GameMaster:
             f" eliminate {eliminated}."
         )
     else:
-      raise ValueError("Eliminate did not return a valid player.")
+      print(f"No player was eliminated this round")
     self._progress()
 
   def protect(self):
@@ -92,11 +113,23 @@ class GameMaster:
     protect, log = self.state.doctor.save()
     self.this_round_log.protect = log
 
+    if protect is None:
+      # 如果没有返回保护目标，随机选择一个
+      available_targets = list(self.this_round.players)
+      if available_targets:
+        protect = random.choice(available_targets)
+        print(f"Warning: {self.state.doctor.name} failed to choose protection target, randomly selected {protect}")
+        # 更新日志
+        log.result = {"protect": protect, "reasoning": "Random fallback selection"}
+      else:
+        print(f"Warning: No players available for {self.state.doctor.name} to protect")
+        protect = None
+
     if protect is not None:
       self.this_round.protected = protect
       tqdm.tqdm.write(f"{self.state.doctor.name} protected {protect}")
     else:
-      raise ValueError("Protect did not return a valid player.")
+      print(f"No player was protected this round")
     self._progress()
 
   def unmask(self):
@@ -107,11 +140,26 @@ class GameMaster:
     unmask, log = self.state.seer.unmask()
     self.this_round_log.investigate = log
 
+    if unmask is None:
+      # 如果没有返回调查目标，随机选择一个未调查过的玩家
+      available_targets = [
+          p for p in self.this_round.players
+          if p != self.state.seer.name and p not in self.state.seer.previously_unmasked.keys()
+      ]
+      if available_targets:
+        unmask = random.choice(available_targets)
+        print(f"Warning: {self.state.seer.name} failed to choose investigation target, randomly selected {unmask}")
+        # 更新日志
+        log.result = {"investigate": unmask, "reasoning": "Random fallback selection"}
+      else:
+        print(f"Warning: No available targets for {self.state.seer.name} to investigate")
+        unmask = None
+
     if unmask is not None:
       self.this_round.unmasked = unmask
       self.state.seer.reveal_and_update(unmask, self.state.players[unmask].role)
     else:
-      raise ValueError("Unmask function did not return a valid player.")
+      print(f"No player was investigated this round")
     self._progress()
 
   def _get_bid(self, player_name):
@@ -297,21 +345,33 @@ class GameMaster:
 
     if self.this_round.exiled is not None:
       exiled_player = self.this_round.exiled
-      self.this_round.players.remove(exiled_player)
-      announcement = (
-          f"The majority voted to remove {exiled_player} from the game."
-      )
+      # 安全地从玩家列表中移除被流放的玩家
+      if exiled_player in self.this_round.players:
+        self.this_round.players.remove(exiled_player)
+        announcement = (
+            f"The majority voted to remove {exiled_player} from the game."
+        )
+      else:
+        print(f"Warning: Exiled player {exiled_player} not found in players list")
+        announcement = f"No valid player was exiled (target: {exiled_player})."
     else:
       announcement = (
           "A majority vote was not reached, so no one was removed from the"
           " game."
       )
 
-    for name in self.this_round.players:
-      player = self.state.players[name]
-      if player.gamestate and self.this_round.exiled is not None:
-        player.gamestate.remove_player(self.this_round.exiled)
-      player.add_announcement(announcement)
+    # 只有在真正流放时才从游戏状态中移除玩家
+    if self.this_round.exiled is not None and self.this_round.exiled in self.state.players:
+      for name in self.this_round.players:
+        player = self.state.players[name]
+        if player.gamestate:
+          player.gamestate.remove_player(self.this_round.exiled)
+        player.add_announcement(announcement)
+    else:
+      # 如果没有流放，仍然需要通知所有玩家
+      for name in self.this_round.players:
+        player = self.state.players[name]
+        player.add_announcement(announcement)
 
     tqdm.tqdm.write(announcement)
     self._progress()
@@ -320,11 +380,17 @@ class GameMaster:
     """Resolve elimination and protection during the night phase."""
     if self.this_round.eliminated != self.this_round.protected:
       eliminated_player = self.this_round.eliminated
-      self.this_round.players.remove(eliminated_player)
-      announcement = (
-          f"The Werewolves removed {eliminated_player} from the game during the"
-          " night."
-      )
+
+      # 安全地从玩家列表中移除被淘汰的玩家
+      if eliminated_player in self.this_round.players:
+        self.this_round.players.remove(eliminated_player)
+        announcement = (
+            f"The Werewolves removed {eliminated_player} from the game during the"
+            " night."
+        )
+      else:
+        print(f"Warning: Eliminated player {eliminated_player} not found in players list")
+        announcement = f"No valid player was removed during the night (target: {eliminated_player})."
 
       # 只有在真正淘汰时才从游戏状态中移除玩家
       for name in self.this_round.players:
@@ -333,14 +399,10 @@ class GameMaster:
           player.gamestate.remove_player(eliminated_player)
         player.add_announcement(announcement)
     else:
-      announcement = "No one was removed from the game during the night."
+      announcement = "No one was removed from the game during the night (Doctor's protection succeeded)."
       # 保护成功时，不移除任何玩家，但需要更新游戏状态
       for name in self.this_round.players:
         player = self.state.players[name]
-        # 只有当淘汰者不为空且不等于保护者时才移除
-        if self.this_round.eliminated and self.this_round.eliminated != self.this_round.protected:
-          if player.gamestate:
-            player.gamestate.remove_player(self.this_round.eliminated)
         player.add_announcement(announcement)
 
     tqdm.tqdm.write(announcement)

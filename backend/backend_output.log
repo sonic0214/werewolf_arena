@@ -1,0 +1,268 @@
+INFO:     Started server process [76866]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+🚀 Starting Werewolf Arena API...
+📝 Environment: development
+🔧 Debug mode: False
+🤖 LLM Providers Health: {'glm': True}
+✅ Global LLM client initialized successfully
+🎮 Ready to start games!
+INFO:     127.0.0.1:60313 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60394 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60422 - "POST /api/v1/games/start HTTP/1.1" 201 Created
+STARTING ROUND: 0
+The Werewolves are picking someone to remove from the game.
+Attempt 1/3 failed: Error code: 400 - {'error': {'code': '1211', 'message': '模型不存在，请检查模型代码。'}}
+Attempt 2/3 failed: Error code: 400 - {'error': {'code': '1211', 'message': '模型不存在，请检查模型代码。'}}
+Attempt 3/3 failed: Error code: 400 - {'error': {'code': '1211', 'message': '模型不存在，请检查模型代码。'}}
+Warning: Jackson (Werewolf) did not return a valid eliminate target, using default
+Jackson eliminated Paul
+The Doctor is protecting someone.
+Attempt 1/3 failed: Error code: 400 - {'error': {'code': '1211', 'message': '模型不存在，请检查模型代码。'}}
+Attempt 2/3 failed: Error code: 400 - {'error': {'code': '1211', 'message': '模型不存在，请检查模型代码。'}}
+Attempt 3/3 failed: Error code: 400 - {'error': {'code': '1211', 'message': '模型不存在，请检查模型代码。'}}
+Warning: Paul failed to choose protection target, randomly selected Sam
+Paul protected Sam
+The Seer is investigating someone.
+Attempt 1/3 failed: Error code: 400 - {'error': {'code': '1211', 'message': '模型不存在，请检查模型代码。'}}
+Attempt 2/3 failed: Error code: 400 - {'error': {'code': '1211', 'message': '模型不存在，请检查模型代码。'}}
+Attempt 3/3 failed: Error code: 400 - {'error': {'code': '1211', 'message': '模型不存在，请检查模型代码。'}}
+Warning: David failed to choose investigation target, randomly selected Jackson
+
+Player Paul not in current players: ['David', 'Jackson', 'Hayley', 'Derek', 'Sam']
+Game error in session session_20251030_215314: list.remove(x): x not in list
+INFO:     127.0.0.1:60560 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60570 - "GET /api/v1/games/session_20251030_214910 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60570 - "GET /api/v1/games/session_20251030_214910 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60570 - "GET /api/v1/games/session_20251030_213440 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60572 - "GET /api/v1/games/session_20251030_213440 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60648 - "GET /api/v1/games/session_20251030_215314 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60657 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60836 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60911 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61019 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61056 - "GET /api/v1/games/session_20251030_214910 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:61059 - "GET /api/v1/games/session_20251030_214910 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:61059 - "GET /api/v1/games/session_20251030_214910 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:61059 - "GET /api/v1/games/session_20251030_214910 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:61059 - "GET /api/v1/games/session_20251030_214910 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:61141 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61059 - "GET /api/v1/games/session_20251030_214910 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:61059 - "GET /api/v1/games/session_20251030_214910 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:61059 - "GET /api/v1/games/session_20251030_214910 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:61059 - "GET /api/v1/games/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61059 - "OPTIONS /api/v1/games/start HTTP/1.1" 200 OK
+STARTING ROUND: 0
+The Werewolves are picking someone to remove from the game.
+INFO:     127.0.0.1:61059 - "POST /api/v1/games/start HTTP/1.1" 201 Created
+Attempt 1/3 failed: Error code: 400 - {'error': {'code': '1211', 'message': '模型不存在，请检查模型代码。'}}
+Attempt 2/3 failed: Error code: 400 - {'error': {'code': '1211', 'message': '模型不存在，请检查模型代码。'}}
+Attempt 3/3 failed: Error code: 400 - {'error': {'code': '1211', 'message': '模型不存在，请检查模型代码。'}}
+Warning: Sam (Werewolf) did not return a valid eliminate target, using default
+Sam eliminated Derek
+The Doctor is protecting someone.
+Attempt 1/3 failed: Error code: 400 - {'error': {'code': '1211', 'message': '模型不存在，请检查模型代码。'}}
+Attempt 2/3 failed: Error code: 400 - {'error': {'code': '1211', 'message': '模型不存在，请检查模型代码。'}}
+Attempt 3/3 failed: Error code: 400 - {'error': {'code': '1211', 'message': '模型不存在，请检查模型代码。'}}
+Warning: Isaac failed to choose protection target, randomly selected Sam
+Isaac protected Sam
+The Seer is investigating someone.
+Attempt 1/3 failed: Error code: 400 - {'error': {'code': '1211', 'message': '模型不存在，请检查模型代码。'}}
+Attempt 2/3 failed: Error code: 400 - {'error': {'code': '1211', 'message': '模型不存在，请检查模型代码。'}}
+Attempt 3/3 failed: Error code: 400 - {'error': {'code': '1211', 'message': '模型不存在，请检查模型代码。'}}
+Warning: Derek failed to choose investigation target, randomly selected Sam
+
+Player Derek not in current players: ['Isaac', 'Sam', 'Bert', 'David', 'Ginger']
+Game error in session session_20251030_215419: list.remove(x): x not in list
+INFO:     127.0.0.1:61260 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61059 - "GET /api/v1/games/session_20251030_213440 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:61267 - "GET /api/v1/games/session_20251030_213440 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:61267 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61267 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61267 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61267 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61267 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61267 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61267 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61267 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61267 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61391 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61267 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61267 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61267 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61267 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61431 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61431 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61431 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61431 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61464 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61431 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61431 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61431 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61431 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61431 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61431 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61431 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61431 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61534 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61431 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61537 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61537 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61537 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61537 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61537 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61537 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61537 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61817 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61537 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61537 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61537 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61537 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61537 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61537 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61925 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61925 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61925 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61925 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61952 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61925 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61925 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61925 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61982 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61925 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61925 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61925 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61925 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61925 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62075 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61925 - "GET /api/v1/games/session_20251030_213440 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:61925 - "GET /api/v1/games/session_20251030_213440 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:61925 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62078 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62078 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62078 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62078 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62078 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62078 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62078 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62235 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62078 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62078 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62078 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62078 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62078 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62078 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62326 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62326 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62326 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62326 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62452 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62326 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62326 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62326 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62326 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62326 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62326 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62326 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62326 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62633 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62326 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62326 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62326 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62326 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62326 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62326 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62326 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62326 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62326 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62326 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62792 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62326 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62326 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62326 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62326 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62643 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62643 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62643 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62643 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63001 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62643 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62643 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62643 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62643 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62643 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62643 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62643 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62643 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62643 - "GET /api/v1/games/session_20251030_213440 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62643 - "GET /api/v1/games/session_20251030_213440 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63234 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62643 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62643 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62643 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62643 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62643 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62643 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62643 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62643 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62643 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62643 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63436 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62643 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62643 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62643 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62643 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63246 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63246 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63536 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63661 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63826 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63913 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64022 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64024 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64022 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64022 - "GET /api/v1/games/session_20251030_213440 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:64022 - "GET /api/v1/games/session_20251030_213440 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:64029 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64194 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64315 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64410 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64550 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64653 - "POST /api/v1/games/start HTTP/1.1" 422 Unprocessable Entity
+INFO:     127.0.0.1:64703 - "GET /health HTTP/1.1" 200 OK
+STARTING ROUND: 0
+The Werewolves are picking someone to remove from the game.
+Attempt 1/3 failed: Provider 'openai' not configured. Available providers: glm
+Attempt 2/3 failed: Provider 'openai' not configured. Available providers: glm
+Attempt 3/3 failed: Provider 'openai' not configured. Available providers: glm
+Warning: Hayley (Werewolf) did not return a valid eliminate target, using default
+Hayley eliminated Dan
+INFO:     127.0.0.1:64771 - "POST /api/v1/games/start HTTP/1.1" 201 Created
+The Doctor is protecting someone.
+Attempt 1/3 failed: Provider 'openai' not configured. Available providers: glm
+Attempt 2/3 failed: Provider 'openai' not configured. Available providers: glm
+Attempt 3/3 failed: Provider 'openai' not configured. Available providers: glm
+Warning: Jackson failed to choose protection target, randomly selected Hayley
+Jackson protected Hayley
+The Seer is investigating someone.
+Attempt 1/3 failed: Provider 'openai' not configured. Available providers: glm
+Attempt 2/3 failed: Provider 'openai' not configured. Available providers: glm
+Attempt 3/3 failed: Provider 'openai' not configured. Available providers: glm
+Warning: Dan failed to choose investigation target, randomly selected Hayley
+
+Player Dan not in current players: ['Jackson', 'Hayley', 'Will', 'Jacob', 'Harold']
+Game error in session session_20251030_215819: list.remove(x): x not in list
+INFO:     127.0.0.1:64810 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64810 - "GET /api/v1/games/session_20251030_215419/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64812 - "GET /api/v1/games/session_20251030_215419 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64812 - "GET /api/v1/games/session_20251030_213440 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:64812 - "GET /api/v1/games/session_20251030_213440 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:64860 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64937 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64944 - "GET /api/v1/games/session_20251030_215819 HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [76866]
+🛑 Shutting down Werewolf Arena API...

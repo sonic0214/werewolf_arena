@@ -71,6 +71,7 @@ class GameView:
                 f"Player {player_to_remove} not in current players:"
                 f" {self.current_players}"
             )
+            return  # 如果玩家不在列表中，直接返回而不尝试移除
         self.current_players.remove(player_to_remove)
 
     def to_dict(self) -> Any:

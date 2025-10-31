@@ -281,8 +281,42 @@ class Werewolf(Player):
             if player != self.name and player != self.gamestate.other_wolf
         ]
         random.shuffle(options)
-        eliminate, log = self._generate_action("remove", options)
-        return eliminate, log
+
+        try:
+            eliminate, log = self._generate_action("remove", options)
+
+            # 验证返回的结果
+            if eliminate is None:
+                print(f"Warning: {self.name} (Werewolf) did not return a valid eliminate target, using default")
+                # 选择一个默认目标
+                default_target = options[0] if options else None
+                return default_target, LmLog(
+                    prompt=f"Default target selected due to empty response",
+                    raw_resp="Empty response",
+                    result={"remove": default_target, "reasoning": "Default selection due to AI failure"}
+                )
+
+            # 验证返回的目标是否在有效选项中
+            if eliminate not in options:
+                print(f"Warning: {self.name} (Werewolf) chose invalid target '{eliminate}', using default")
+                default_target = options[0] if options else None
+                return default_target, LmLog(
+                    prompt=f"Invalid target '{eliminate}', using default {default_target}",
+                    raw_resp=f"Invalid target: {eliminate}",
+                    result={"remove": default_target, "reasoning": f"Corrected invalid choice '{eliminate}' to default"}
+                )
+
+            return eliminate, log
+
+        except Exception as e:
+            print(f"Error during eliminate action for {self.name}: {e}")
+            # 出现异常时返回默认目标
+            default_target = options[0] if options else None
+            return default_target, LmLog(
+                prompt=f"Error during eliminate action: {str(e)}",
+                raw_resp=f"Error: {str(e)}",
+                result={"remove": default_target, "reasoning": f"Error fallback to default target"}
+            )
 
     def _get_werewolf_context(self):
         """获取狼人上下文信息"""

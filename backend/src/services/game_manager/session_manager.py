@@ -14,6 +14,7 @@ from src.core.models.game_state import State
 from src.core.models.player import Seer, Doctor, Villager, Werewolf
 from src.services.logger.game_logger import log_directory, save_game
 from src.config.settings import get_player_names, DEFAULT_THREADS
+from src.config.loader import model_registry
 
 
 class GameSession:
@@ -58,13 +59,20 @@ class GameSessionManager:
         """创建新游戏会话"""
         import random
 
+        # 转换模型ID为完整格式
+        full_villager_model = model_registry.get_full_model_id(villager_model)
+        full_werewolf_model = model_registry.get_full_model_id(werewolf_model)
+
+        print(f"Model conversion: {villager_model} -> {full_villager_model}")
+        print(f"Model conversion: {werewolf_model} -> {full_werewolf_model}")
+
         # 初始化玩家
         player_names = random.sample(get_player_names(), num_players)
 
-        seer = Seer(name=player_names.pop(), model=villager_model)
-        doctor = Doctor(name=player_names.pop(), model=villager_model)
-        werewolves = [Werewolf(name=player_names.pop(), model=werewolf_model) for _ in range(1)]
-        villagers = [Villager(name=name, model=villager_model) for name in player_names]
+        seer = Seer(name=player_names.pop(), model=full_villager_model)
+        doctor = Doctor(name=player_names.pop(), model=full_villager_model)
+        werewolves = [Werewolf(name=player_names.pop(), model=full_werewolf_model) for _ in range(1)]
+        villagers = [Villager(name=name, model=full_villager_model) for name in player_names]
 
         # 初始化游戏视图
         all_player_names = [seer.name, doctor.name] + [w.name for w in werewolves] + [v.name for v in villagers]

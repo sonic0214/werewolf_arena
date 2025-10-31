@@ -12,11 +12,17 @@ import random
 class GameSettings(BaseSettings):
     """游戏配置"""
     num_players: int = 6
-    max_debate_turns: int = 2
-    default_threads: int = 5
+    max_debate_turns: int = 5  # 增加辩论轮数到5轮
+    default_threads: int = 2
     retries: int = 3
-    frontend_refresh_interval: int = 2000  # 毫秒
+    frontend_refresh_interval: int = 5000  # 降低刷新频率到5秒
     run_synthetic_votes: bool = True
+
+    # 新增延迟配置
+    action_delay: float = 2.0  # 每个动作之间延迟2秒
+    debate_delay: float = 3.0  # 每次发言延迟3秒
+    night_action_delay: float = 5.0  # 夜间行动延迟5秒
+    summary_delay: float = 3.0  # 总结延迟3秒
 
 
 class LLMSettings(BaseSettings):

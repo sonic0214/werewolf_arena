@@ -20,10 +20,12 @@ import random
 from typing import List, Optional, Callable
 
 import tqdm
+import time
 
 from src.core.models.game_state import Round, State
 from src.core.models.logs import RoundLog, VoteLog
 from src.config.settings import MAX_DEBATE_TURNS, RUN_SYNTHETIC_VOTES
+from src.config.settings import settings
 
 def get_max_bids(d):
   """Gets all the keys with the highest value in the dictionary."""
@@ -65,6 +67,9 @@ class GameMaster:
 
   def eliminate(self):
     """Werewolves choose a player to eliminate."""
+    # 添加夜间行动延迟
+    time.sleep(settings.game.night_action_delay)
+
     werewolves_alive = [
         w for w in self.state.werewolves if w.name in self.this_round.players
     ]
@@ -110,6 +115,9 @@ class GameMaster:
     if self.state.doctor.name not in self.this_round.players:
       return  # Doctor no longer in the game
 
+    # 添加夜间行动延迟
+    time.sleep(settings.game.night_action_delay)
+
     protect, log = self.state.doctor.save()
     self.this_round_log.protect = log
 
@@ -136,6 +144,9 @@ class GameMaster:
     """Seer chooses a player to unmask."""
     if self.state.seer.name not in self.this_round.players:
       return  # Seer no longer in the game
+
+    # 添加夜间行动延迟
+    time.sleep(settings.game.night_action_delay)
 
     unmask, log = self.state.seer.unmask()
     self.this_round_log.investigate = log
@@ -245,6 +256,10 @@ class GameMaster:
             log = f"Error: {str(e)}"
             tqdm.tqdm.write(f"{player_name} summary: {summary}")
             self.this_round_log.summaries.append((player_name, log))
+
+            # 添加总结延迟
+            time.sleep(settings.game.summary_delay)
+
         self._progress()
 
   def run_day_phase(self):
@@ -272,6 +287,10 @@ class GameMaster:
       self.this_round_log.debate.append((next_speaker, log))
       self.this_round.debate.append([next_speaker, dialogue])
       tqdm.tqdm.write(f"{next_speaker} ({player.role}): {dialogue}")
+
+      # 添加辩论延迟
+      time.sleep(settings.game.debate_delay)
+
       self._progress()
 
       for name in self.this_round.players:

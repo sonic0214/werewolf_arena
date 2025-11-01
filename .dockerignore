@@ -1,0 +1,81 @@
+# .dockerignore
+
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+docs/
+
+# Logs
+*.log
+logs/
+**/*.log
+
+# Node modules
+node_modules/
+frontend/node_modules/
+**/node_modules/
+
+# Next.js build artifacts (except standalone build)
+frontend/.next/
+frontend/out/
+frontend/build/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Test files
+coverage/
+.nyc_output/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+.temp/
+
+# Scripts (exclude build scripts)
+scripts/
+!/scripts/deploy-fly.sh
+
+# Development tools
+.eslintrc*
+.prettierrc*
+.stylelintrc*
+
+# Docker files
+Dockerfile*
+docker-compose*
+.dockerignore

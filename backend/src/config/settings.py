@@ -89,7 +89,13 @@ class ServerSettings(BaseSettings):
 
 class CORSSettings(BaseSettings):
     """CORS配置"""
-    allow_origins: List[str] = ["http://localhost:3000", "http://localhost:8080"]
+    allow_origins: List[str] = [
+        "http://localhost:3000",
+        "http://localhost:8080",
+        "https://*.fly.dev",  # fly.io域名
+        "https://*.fly.io",   # fly.io备用域名
+        "*",                 # 生产环境允许所有来源（可根据需要调整）
+    ]
     allow_credentials: bool = True
     allow_methods: List[str] = ["*"]
     allow_headers: List[str] = ["*"]

@@ -1082,7 +1082,7 @@ const LiveGamePage = () => {
                 <MessageCircle className="w-4 h-4 text-amber-400" />
                 <h3 className="font-bold text-slate-100">游戏消息记录</h3>
               </div>
-              <Badge variant="outline" className="text-xs text-amber-400 border-amber-400/30">
+              <Badge variant="default" className="text-xs text-amber-400 border-amber-400/30">
                 {WebSocketMessageFormatter.filterGameMessages(wsMessages).length} 条消息
               </Badge>
             </div>

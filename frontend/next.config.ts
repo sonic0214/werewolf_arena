@@ -25,8 +25,7 @@ const nextConfig: NextConfig = {
 
   // 启用实验性功能
   experimental: {
-    // 启用appDir
-    appDir: true,
+    // Next.js 14 中 appDir 已经是默认功能，不需要显式启用
   },
 };
 

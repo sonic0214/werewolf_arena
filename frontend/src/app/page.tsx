@@ -4,299 +4,317 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { Select } from '@/components/ui/Select';
-import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
-import { useGameActions, useGameSettings, useGameLoading, useGameError, useCurrentGame } from '@/lib/store/gameStore';
-import { useModels } from '@/lib/hooks/useModels';
-import { ModelInfo } from '@/types/api';
+import { Trophy, TrendingUp, Zap, Users, DollarSign } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useGameActions, useGameLoading, useGameError, useCurrentGame } from '@/lib/store/gameStore';
 
 export default function Home() {
   const router = useRouter();
-  const { models, loading: modelsLoading } = useModels();
-  const { startGame, setGameSettings } = useGameActions();
-  const gameSettings = useGameSettings();
+  const { startGame } = useGameActions();
   const gameLoading = useGameLoading();
   const gameError = useGameError();
   const currentGame = useCurrentGame();
-
-  const [villagerModel, setVillagerModel] = useState<string>('glmz1-flash');
-  const [werewolfModel, setWerewolfModel] = useState<string>('glmz1-flash');
-  const [customPlayerNames, setCustomPlayerNames] = useState<string>('');
-
-  // Set default model when models are loaded
-  useEffect(() => {
-    if (models && models.length > 0) {
-      // Find the default model or use the first available one
-      const defaultModel = models.find(m => m.alias === 'glmz1-flash') || models[0];
-      if (defaultModel && !villagerModel) {
-        setVillagerModel(defaultModel.alias);
-        setWerewolfModel(defaultModel.alias);
-      }
-    }
-  }, [models]);
+  const [isStarting, setIsStarting] = useState(false);
 
   // Auto-redirect to live game page when game starts successfully
+  // But only if we came from the home page initially (not from returning)
   useEffect(() => {
     if (currentGame && currentGame.session_id && gameLoading === 'success') {
-      console.log('Game started successfully, redirecting to live page:', currentGame.session_id);
-      router.push(`/live/${currentGame.session_id}`);
+      // Check if we should auto-redirect (only when user just started a game)
+      const shouldRedirect = sessionStorage.getItem('shouldRedirectToGame') === 'true';
+      if (shouldRedirect) {
+        console.log('Game started successfully, redirecting to live game page:', currentGame.session_id);
+        // Clear the flag
+        sessionStorage.removeItem('shouldRedirectToGame');
+        router.push(`/live-game/${currentGame.session_id}`);
+      }
     }
   }, [currentGame, gameLoading, router]);
 
-  const handleStartGame = async () => {
+  const handleEnterLivestream = async () => {
     try {
-      // Update game settings
-      const playerNames = customPlayerNames
-        ? customPlayerNames.split(',').map(name => name.trim()).filter(name => name)
-        : undefined;
+      setIsStarting(true);
 
-      setGameSettings({
-        villager_models: [villagerModel],
-        werewolf_models: [werewolfModel],
-        player_names: playerNames,
-      });
+      // Set flag to indicate we should redirect after game starts
+      sessionStorage.setItem('shouldRedirectToGame', 'true');
 
-      // Start game
+      // 使用默认参数启动游戏
       await startGame({
-        villager_model: villagerModel,
-        werewolf_model: werewolfModel,
-        player_names: playerNames,
+        villager_model: 'minimax/MiniMax-M2',
+        werewolf_model: 'minimax/MiniMax-M2',
         discussion_time_minutes: 5,
         max_rounds: 10,
       });
 
     } catch (error) {
       console.error('Failed to start game:', error);
+      setIsStarting(false);
+      // Clear flag on error
+      sessionStorage.removeItem('shouldRedirectToGame');
     }
   };
 
-  // Filter enabled models only
-  const enabledModels = models?.filter(model => model.enabled) || [];
-  const modelOptions = enabledModels.map(model => ({
-    value: model.alias,
-    label: `${model.name} (${model.provider})`,
-    disabled: !model.enabled
-  }));
+  const userRankings = [
+    { rank: 1, name: "玩家_8492", winnings: 12540, trend: "+1,256", winRate: 72 },
+    { rank: 2, name: "AI猎手", winnings: 9813, trend: "+892", winRate: 68 },
+    { rank: 3, name: "推理大师", winnings: 8598, trend: "+534", winRate: 65 },
+    { rank: 4, name: "狼人克星", winnings: 7254, trend: "-123", winRate: 61 },
+    { rank: 5, name: "逻辑王者", winnings: 6432, trend: "+678", winRate: 59 },
+    { rank: 6, name: "预言先知", winnings: 5801, trend: "+445", winRate: 57 },
+  ];
 
-  if (modelsLoading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Loading Available Models...</h2>
-          <p className="text-gray-600">Please wait while we fetch the AI models.</p>
-        </div>
-      </div>
-    );
-  }
+  const modelPerformanceData = [
+    { round: "1", "GPT-4": 75, "Claude": 68, "LLaMA": 62, "Gemini": 70 },
+    { round: "2", "GPT-4": 80, "Claude": 72, "LLaMA": 65, "Gemini": 68 },
+    { round: "3", "GPT-4": 78, "Claude": 75, "LLaMA": 70, "Gemini": 65 },
+    { round: "4", "GPT-4": 85, "Claude": 78, "LLaMA": 72, "Gemini": 70 },
+    { round: "5", "GPT-4": 82, "Claude": 80, "LLaMA": 75, "Gemini": 72 },
+    { round: "6", "GPT-4": 88, "Claude": 82, "LLaMA": 78, "Gemini": 75 },
+  ];
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            🐺 Werewolf Arena
-          </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            AI-powered social deduction game where language models compete in the classic Werewolf game
-          </p>
+    <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-950">
+      {/* 顶部导航栏 */}
+      <nav className="border-b border-slate-800 bg-slate-900/90 backdrop-blur-sm sticky top-0 z-50">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-8">
+              <h1 className="text-2xl font-bold text-amber-400 cursor-pointer" onClick={() => router.push('/')}>
+                AI Arena
+              </h1>
+              <div className="hidden md:flex items-center gap-6 text-sm">
+                <button
+                  onClick={handleEnterLivestream}
+                  className="text-amber-400 hover:text-amber-300 transition-colors font-medium"
+                >
+                  LIVE
+                </button>
+                <button
+                  onClick={() => router.push('/leaderboard')}
+                  className="text-slate-400 hover:text-slate-300 transition-colors"
+                >
+                  LEADERBOARD
+                </button>
+                <button
+                  onClick={() => router.push('/models')}
+                  className="text-slate-400 hover:text-slate-300 transition-colors"
+                >
+                  MODELS
+                </button>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="bg-red-500/20 border-red-500 text-red-400">
+                <div className="w-2 h-2 rounded-full bg-red-500 mr-2 animate-pulse" />
+                直播中
+              </Badge>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      {/* 实时数据滚动栏 */}
+      <div className="border-b border-slate-800 bg-slate-800/50 overflow-hidden">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex items-center gap-8 text-sm overflow-x-auto">
+            <div className="flex items-center gap-2 whitespace-nowrap">
+              <span className="text-slate-400">当前在线:</span>
+              <span className="font-bold text-amber-400">1,234</span>
+            </div>
+            <div className="flex items-center gap-2 whitespace-nowrap">
+              <span className="text-slate-400">今日对局:</span>
+              <span className="font-bold">42</span>
+            </div>
+            <div className="flex items-center gap-2 whitespace-nowrap">
+              <span className="text-slate-400">总下注额:</span>
+              <span className="font-bold text-amber-400">¥234,567</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 主要内容区 */}
+      <div className="container mx-auto px-4 py-6">
+        <div className="grid grid-cols-12 gap-6">
+          {/* 左侧：图表区域 */}
+          <div className="col-span-12 lg:col-span-8 space-y-6">
+            {/* 直播入口卡片 */}
+            <Card className="p-8 bg-gradient-to-br from-slate-800 to-slate-900 border-slate-700 text-center">
+              <div className="max-w-2xl mx-auto">
+                <Badge className="mb-6 text-sm px-4 py-2 bg-amber-500/20 border-amber-500 text-amber-400">
+                  <Users className="w-4 h-4 mr-2" />
+                  第 3 局 - 发言阶段
+                </Badge>
+                <h2 className="text-4xl font-bold mb-4 text-slate-100">
+                  猜猜哪个是狼，赢取你的荣耀值！
+                </h2>
+                <p className="text-lg text-slate-400 mb-8">
+                  实时竞猜，见证推理的艺术
+                </p>
+
+                {/* Error Display */}
+                {gameError && (
+                  <div className="mb-6 p-4 bg-red-900/50 border border-red-500 rounded-md">
+                    <p className="text-red-400">{gameError}</p>
+                  </div>
+                )}
+
+                <Button
+                  size="lg"
+                  onClick={handleEnterLivestream}
+                  disabled={isStarting || gameLoading === 'loading'}
+                  className="shadow-2xl text-lg px-8 py-6 h-auto bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-black font-bold"
+                >
+                  <Zap className="w-5 h-5 mr-2" />
+                  {isStarting || gameLoading === 'loading' ? '启动游戏中...' : '进入直播间'}
+                </Button>
+              </div>
+            </Card>
+
+            {/* 模型表现图表 */}
+            <Card className="p-6 bg-slate-800/50 border-slate-700">
+              <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-slate-100">
+                <TrendingUp className="w-5 h-5 text-amber-400" />
+                模型表现趋势
+              </h3>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={modelPerformanceData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                    <XAxis
+                      dataKey="round"
+                      label={{ value: '局数', position: 'insideBottom', offset: -5 }}
+                      className="text-slate-400"
+                      tick={{ fill: '#94a3b8' }}
+                    />
+                    <YAxis
+                      label={{ value: '胜率 (%)', angle: -90, position: 'insideLeft' }}
+                      className="text-slate-400"
+                      tick={{ fill: '#94a3b8' }}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#1e293b',
+                        border: '1px solid #334155',
+                        borderRadius: '0.5rem',
+                        color: '#f1f5f9'
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="GPT-4"
+                      stroke="#f59e0b"
+                      strokeWidth={2}
+                      dot={{ fill: '#f59e0b' }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="Claude"
+                      stroke="#eab308"
+                      strokeWidth={2}
+                      dot={{ fill: '#eab308' }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="LLaMA"
+                      stroke="#71717a"
+                      strokeWidth={2}
+                      dot={{ fill: '#71717a' }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="Gemini"
+                      stroke="#a1a1aa"
+                      strokeWidth={2}
+                      dot={{ fill: '#a1a1aa' }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+          </div>
+
+          {/* 右侧：用户胜注排行榜 */}
+          <div className="col-span-12 lg:col-span-4">
+            <Card className="p-4 bg-slate-800/50 border-slate-700 sticky top-24">
+              <div className="flex items-center gap-2 mb-4">
+                <DollarSign className="w-5 h-5 text-amber-400" />
+                <h3 className="font-bold text-lg text-slate-100">用户胜注排行</h3>
+              </div>
+
+              <div className="space-y-2 max-h-[600px] overflow-y-auto">
+                {userRankings.map((user, index) => (
+                  <Card
+                    key={user.rank}
+                    className={`
+                      p-3 bg-slate-700/50 border transition-all cursor-pointer
+                      ${index === 0 ? "border-amber-500 shadow-lg shadow-amber-500/20" : "border-slate-600 hover:border-amber-500/50"}
+                    `}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`
+                          w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0
+                          ${user.rank === 1 ? "bg-amber-500 text-black" : ""}
+                          ${user.rank === 2 ? "bg-amber-600 text-black" : ""}
+                          ${user.rank === 3 ? "bg-amber-700 text-black" : ""}
+                          ${user.rank > 3 ? "bg-slate-600 text-slate-300" : ""}
+                        `}
+                      >
+                        {user.rank}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold text-sm mb-1 text-slate-100">{user.name}</div>
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className="text-amber-400 font-semibold">
+                            ¥{user.winnings.toLocaleString()}
+                          </span>
+                          <Badge
+                            variant={user.trend.startsWith("+") ? "default" : "destructive"}
+                            className="text-xs px-1 py-0"
+                          >
+                            {user.trend}
+                          </Badge>
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <div className="text-xs text-slate-400">胜率</div>
+                        <div className="font-bold text-sm text-slate-100">{user.winRate}%</div>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </Card>
+          </div>
         </div>
 
-        {/* Game Configuration */}
-        <Card className="mb-8">
-          <h2 className="text-2xl font-semibold mb-6">Game Configuration</h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            {/* Villager Model */}
-            <div>
-              <Select
-                label="Villager Model"
-                placeholder="Select villager model"
-                value={villagerModel}
-                onChange={(value) => setVillagerModel(value as string)}
-                options={modelOptions}
-                helperText="Model for villagers"
-              />
-              {villagerModel && (
-                <div className="mt-2">
-                  <Badge variant="secondary">
-                    {enabledModels.find(m => m.alias === villagerModel)?.name || villagerModel}
-                  </Badge>
+        {/* 底部模型快速导航 */}
+        <div className="mt-6">
+          <h3 className="text-lg font-bold mb-4 text-slate-100">参赛模型</h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            {["GPT-4", "Claude", "LLaMA", "Gemini", "Mistral", "Qwen"].map((model, index) => (
+              <Card
+                key={model}
+                className="p-4 bg-slate-800/50 border-slate-700 hover:border-amber-500/50 transition-all cursor-pointer text-center"
+              >
+                <div className="text-lg font-bold mb-1 text-slate-100">{model}</div>
+                <div className="text-sm text-slate-400">
+                  胜率 {85 - index * 3}%
                 </div>
-              )}
-            </div>
-
-            {/* Werewolf Model */}
-            <div>
-              <Select
-                label="Werewolf Model"
-                placeholder="Select werewolf model"
-                value={werewolfModel}
-                onChange={(value) => setWerewolfModel(value as string)}
-                options={modelOptions}
-                helperText="Model for werewolves"
-              />
-              {werewolfModel && (
-                <div className="mt-2">
-                  <Badge variant="danger">
-                    {enabledModels.find(m => m.alias === werewolfModel)?.name || werewolfModel}
-                  </Badge>
-                </div>
-              )}
-            </div>
+                <Badge
+                  variant="outline"
+                  className="text-xs mt-2 border-amber-500 text-amber-400"
+                >
+                  +{120 - index * 15}
+                </Badge>
+              </Card>
+            ))}
           </div>
-
-          {/* Optional Player Names */}
-          <div className="mb-6">
-            <Input
-              label="Custom Player Names (optional)"
-              placeholder="Enter comma-separated player names"
-              value={customPlayerNames}
-              onChange={(e) => setCustomPlayerNames(e.target.value)}
-              helperText="Leave empty to use random names"
-            />
-          </div>
-
-          {/* Game Settings */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Discussion Time (minutes)
-              </label>
-              <Select
-                value={gameSettings.discussion_time_minutes.toString()}
-                onChange={(value) => setGameSettings({
-                  discussion_time_minutes: parseInt(value)
-                })}
-                options={[
-                  { value: '3', label: '3 minutes' },
-                  { value: '5', label: '5 minutes' },
-                  { value: '10', label: '10 minutes' },
-                  { value: '15', label: '15 minutes' },
-                ]}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Maximum Rounds
-              </label>
-              <Select
-                value={gameSettings.max_rounds.toString()}
-                onChange={(value) => setGameSettings({
-                  max_rounds: parseInt(value)
-                })}
-                options={[
-                  { value: '5', label: '5 rounds' },
-                  { value: '10', label: '10 rounds' },
-                  { value: '15', label: '15 rounds' },
-                  { value: '20', label: '20 rounds' },
-                ]}
-              />
-            </div>
-          </div>
-
-          {/* Error Display */}
-          {gameError && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-red-800">{gameError}</p>
-            </div>
-          )}
-
-          {/* Start Game Button */}
-          <div className="flex justify-center">
-            <Button
-              variant="primary"
-              size="lg"
-              onClick={handleStartGame}
-              disabled={
-                !villagerModel ||
-                !werewolfModel ||
-                gameLoading === 'loading'
-              }
-              loading={gameLoading === 'loading'}
-            >
-              {gameLoading === 'loading' ? 'Starting Game...' : 'Start Game'}
-            </Button>
-          </div>
-        </Card>
-
-        {/* Available Models */}
-        {enabledModels.length > 0 && (
-          <Card>
-            <h3 className="text-xl font-semibold mb-4">Available Models ({enabledModels.length})</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {enabledModels.map(model => {
-                const isVillagerSelected = villagerModel === model.alias;
-                const isWerewolfSelected = werewolfModel === model.alias;
-
-                return (
-                  <div
-                    key={model.alias}
-                    className={`p-3 border rounded-md hover:shadow-sm transition-all cursor-pointer ${
-                      model.enabled
-                        ? 'border-gray-200 hover:border-primary-300'
-                        : 'border-gray-100 opacity-50 cursor-not-allowed'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium text-gray-900">{model.name}</h4>
-                      <div className="flex gap-1">
-                        <Badge
-                          variant={model.enabled ? "default" : "secondary"}
-                          size="sm"
-                        >
-                          {model.provider}
-                        </Badge>
-                        {model.alias === 'glmz1-flash' && (
-                          <Badge variant="success" size="sm">Default</Badge>
-                        )}
-                      </div>
-                    </div>
-                    <p className="text-sm text-gray-600 mb-2">
-                      {model.description || `${model.provider} model`}
-                    </p>
-                    <div className="flex flex-wrap gap-1">
-                      {isVillagerSelected && (
-                        <Badge variant="secondary" size="sm">Villager</Badge>
-                      )}
-                      {isWerewolfSelected && (
-                        <Badge variant="danger" size="sm">Werewolf</Badge>
-                      )}
-                    </div>
-                    {model.context_length && (
-                      <p className="text-xs text-gray-500 mt-2">
-                        Context: {model.context_length.toLocaleString()} tokens
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Show disabled models if any */}
-            {models && models.some(m => !m.enabled) && (
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <h4 className="text-sm font-medium text-gray-500 mb-3">Disabled Models (require API keys)</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {models.filter(m => !m.enabled).map(model => (
-                    <div
-                      key={model.alias}
-                      className="p-2 border border-gray-100 rounded-md opacity-60"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">{model.name}</span>
-                        <Badge variant="secondary" size="sm">{model.provider}</Badge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </Card>
-        )}
+        </div>
       </div>
     </div>
   );

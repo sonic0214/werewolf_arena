@@ -137,13 +137,12 @@ export const useGameStore = create<GameStoreState>()(
           const response = await gamesAPI.startGame(request);
 
           // Create a basic game state from the start response
-          const initialGameState = {
+          const initialGameState: GameState = {
             session_id: response.session_id,
             status: 'running' as const,
             current_round: undefined,
             rounds: [],
             players: [],
-            winner: null,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             settings: {
@@ -214,8 +213,8 @@ export const useGameStore = create<GameStoreState>()(
             return;
           }
 
-          // Handle both wrapped and unwrapped API responses
-          const data = response.data || response; // Handle both formats
+          // Handle the API response
+          const data = response;
           console.log('Processed data:', data);
 
           if (!data) {
@@ -225,43 +224,44 @@ export const useGameStore = create<GameStoreState>()(
           }
 
           // Convert flat API response to GameState format
-          const gameState = {
+          const gameState: GameState = {
             session_id: data.session_id,
-            status: data.status,
+            status: data.status === 'pending' ? 'waiting' : data.status,
             current_round: data.current_round ? {
               id: data.current_round.toString(),
               phase: {
                 name: 'Unknown',
-                type: 'day',
+                type: 'day' as const,
                 number: data.current_round
-              }
+              },
+              players: [],
+              votes: [],
+              discussions: []
             } : undefined,
-            players: data.players?.map(p => ({
+            players: data.players?.map((p: any) => ({
               id: Math.random(), // Generate temporary ID
               name: p.name,
               role: p.role.toLowerCase(),
-              alive: p.alive,
-              model: p.model
+              alive: p.alive
             })) || [],
-            rounds: data.rounds?.map((r, idx) => ({
+            rounds: data.rounds?.map((r: any) => ({
               id: r.round_number.toString(),
               phase: {
                 name: 'Round ' + r.round_number,
-                type: 'day',
+                type: 'day' as const,
                 number: r.round_number
               },
-              players: r.players_alive || [],
+              players: [],
               discussions: [],
-              votes: [],
-              night_actions: []
+              votes: []
             })) || [],
-            winner: data.winner || null,
+            winner: data.winner || undefined,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             settings: {
               villager_models: [],
               werewolf_models: [],
-              player_names: data.players?.map(p => p.name) || [],
+              player_names: data.players?.map((p: any) => p.name) || [],
               discussion_time_minutes: 5,
               max_rounds: 10
             }

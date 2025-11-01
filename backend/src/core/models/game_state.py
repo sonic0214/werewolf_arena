@@ -71,8 +71,12 @@ class GameView:
                 f"Player {player_to_remove} not in current players:"
                 f" {self.current_players}"
             )
-            return  # 如果玩家不在列表中，直接返回而不尝试移除
+            # 如果玩家不在列表中，说明已经被移除或者状态不一致，不需要重复移除
+            # 但这种状态不一致应该被记录以便调试
+            print(f"[调试] remove_player调用时玩家{player_to_remove}已不在current_players中，可能是重复移除或状态不同步")
+            return
         self.current_players.remove(player_to_remove)
+        print(f"[调试] 成功从current_players中移除玩家: {player_to_remove}, 剩余玩家: {self.current_players}")
 
     def to_dict(self) -> Any:
         return to_dict(self)
@@ -165,7 +169,23 @@ class State(Deserializable):
         self.winner: str = ""
 
     def to_dict(self):
-        return to_dict(self)
+        # 先序列化整个对象
+        data = to_dict(self)
+        
+        # 获取当前存活玩家列表
+        # 如果有回合记录，使用最后一轮的玩家列表；否则使用所有玩家
+        if self.rounds and len(self.rounds) > 0:
+            current_players = self.rounds[-1].players
+        else:
+            current_players = list(self.players.keys())
+        
+        # 为每个玩家动态添加 alive 字段
+        if 'players' in data and isinstance(data['players'], dict):
+            for player_name, player_data in data['players'].items():
+                if isinstance(player_data, dict):
+                    player_data['alive'] = player_name in current_players
+        
+        return data
 
     @classmethod
     def from_json(cls, data: Dict[Any, Any]):

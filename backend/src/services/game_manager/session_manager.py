@@ -15,6 +15,7 @@ from src.core.models.player import Seer, Doctor, Villager, Werewolf
 from src.services.logger.game_logger import log_directory, save_game
 from src.config.settings import get_player_names, DEFAULT_THREADS
 from src.config.loader import model_registry
+from src.config.player_models import get_model_for_player
 
 
 class GameSession:
@@ -59,20 +60,42 @@ class GameSessionManager:
         """创建新游戏会话"""
         import random
 
-        # 转换模型ID为完整格式
-        full_villager_model = model_registry.get_full_model_id(villager_model)
-        full_werewolf_model = model_registry.get_full_model_id(werewolf_model)
+        print("创建新游戏：6个玩家，每个玩家使用不同的模型")
 
-        print(f"Model conversion: {villager_model} -> {full_villager_model}")
-        print(f"Model conversion: {werewolf_model} -> {full_werewolf_model}")
+        # 获取所有玩家模型名（6个不同的模型名）
+        player_names = get_player_names()  # 现在返回6个模型名
 
-        # 初始化玩家
-        player_names = random.sample(get_player_names(), num_players)
+        if len(player_names) != num_players:
+            print(f"警告：期望 {num_players} 个玩家，但得到 {len(player_names)} 个玩家名")
 
-        seer = Seer(name=player_names.pop(), model=full_villager_model)
-        doctor = Doctor(name=player_names.pop(), model=full_villager_model)
-        werewolves = [Werewolf(name=player_names.pop(), model=full_werewolf_model) for _ in range(1)]
-        villagers = [Villager(name=name, model=full_villager_model) for name in player_names]
+        print(f"玩家列表：{player_names}")
+
+        # 随机打乱玩家名顺序，确保每次游戏角色分配不同
+        random.shuffle(player_names)
+
+        # 分配角色：1个预言家，1个医生，1个狼人，3个村民
+        seer_name = player_names[0]
+        seer_model = get_model_for_player(seer_name, "Seer")
+        seer = Seer(name=seer_name, model=seer_model)
+        print(f"预言家 {seer_name} -> {seer_model}")
+
+        doctor_name = player_names[1]
+        doctor_model = get_model_for_player(doctor_name, "Doctor")
+        doctor = Doctor(name=doctor_name, model=doctor_model)
+        print(f"医生 {doctor_name} -> {doctor_model}")
+
+        werewolf_name = player_names[2]
+        werewolf_model = get_model_for_player(werewolf_name, "Werewolf")
+        werewolves = [Werewolf(name=werewolf_name, model=werewolf_model)]
+        print(f"狼人 {werewolf_name} -> {werewolf_model}")
+
+        # 剩余3个作为村民
+        villagers = []
+        for name in player_names[3:]:
+            villager_model = get_model_for_player(name, "Villager")
+            villager = Villager(name=name, model=villager_model)
+            villagers.append(villager)
+            print(f"村民 {name} -> {villager_model}")
 
         # 初始化游戏视图
         all_player_names = [seer.name, doctor.name] + [w.name for w in werewolves] + [v.name for v in villagers]
@@ -223,6 +246,94 @@ async def _notify_game_update(session_id: str, state: State):
 
     except Exception as e:
         print(f"Failed to send WebSocket notification: {e}")
+
+async def _notify_player_action(session_id: str, action_type, player_name: str, player_role: str, target_name: Optional[str] = None, details: Optional[Dict[str, Any]] = None):
+    """发送玩家动作通知"""
+    try:
+        from src.api.v1.routes.websocket import notify_player_action
+        from src.services.game_manager.sequence_manager import ActionType
+
+        await notify_player_action(
+            session_id=session_id,
+            action_type=ActionType(action_type),
+            player_name=player_name,
+            player_role=player_role,
+            target_name=target_name,
+            details=details
+        )
+    except Exception as e:
+        print(f"Failed to send player action notification: {e}")
+
+async def _notify_debate_turn(session_id: str, player_name: str, dialogue: str, player_role: str):
+    """发送辩论发言通知"""
+    try:
+        from src.api.v1.routes.websocket import notify_debate_turn
+        await notify_debate_turn(session_id, player_name, dialogue, player_role)
+    except Exception as e:
+        print(f"Failed to send debate turn notification: {e}")
+
+async def _notify_vote_cast(session_id: str, voter: str, target: str, voter_role: str):
+    """发送投票通知"""
+    try:
+        from src.api.v1.routes.websocket import notify_vote_cast
+        await notify_vote_cast(session_id, voter, target, voter_role)
+    except Exception as e:
+        print(f"Failed to send vote cast notification: {e}")
+
+async def _notify_night_action(session_id: str, action_type, player_name: str, player_role: str, target_name: Optional[str] = None, details: Optional[Dict[str, Any]] = None):
+    """发送夜间行动通知"""
+    try:
+        from src.api.v1.routes.websocket import notify_night_action
+        from src.services.game_manager.sequence_manager import ActionType
+
+        await notify_night_action(
+            session_id=session_id,
+            action_type=ActionType(action_type),
+            player_name=player_name,
+            player_role=player_role,
+            target_name=target_name,
+            details=details
+        )
+    except Exception as e:
+        print(f"Failed to send night action notification: {e}")
+
+async def _notify_phase_change(session_id: str, phase: str, round_number: int):
+    """发送阶段变化通知"""
+    try:
+        from src.api.v1.routes.websocket import notify_phase_change
+        await notify_phase_change(session_id, phase, round_number)
+    except Exception as e:
+        print(f"Failed to send phase change notification: {e}")
+
+async def _notify_player_exile(session_id: str, exiled_player: str, round_number: int):
+    """发送玩家放逐通知"""
+    try:
+        from src.api.v1.routes.websocket import notify_player_exile
+        await notify_player_exile(session_id, exiled_player, round_number)
+    except Exception as e:
+        print(f"Failed to send player exile notification: {e}")
+
+async def _notify_player_summary(session_id: str, player_name: str, summary: str, round_number: int):
+    """发送玩家总结通知"""
+    try:
+        from src.api.v1.routes.websocket import notify_player_summary
+        await notify_player_summary(session_id, player_name, summary, round_number)
+    except Exception as e:
+        print(f"Failed to send player summary notification: {e}")
+
+async def _notify_game_complete(session_id: str, winner: str, winner_name: str, players_info: dict, round_number: int):
+    """发送游戏结束通知"""
+    try:
+        from src.api.v1.routes.websocket import notify_game_complete
+        await notify_game_complete(
+            session_id=session_id,
+            winner=winner,
+            winner_name=winner_name,
+            players_info=players_info,
+            round_number=round_number
+        )
+    except Exception as e:
+        print(f"Failed to send game complete notification: {e}")
 
 # 全局实例
 game_manager = GameSessionManager()

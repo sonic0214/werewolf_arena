@@ -191,7 +191,7 @@ class WebSocketClient {
   private onRoundComplete?: WebSocketEventHandler;
   private onGameComplete?: WebSocketEventHandler;
   private onError?: WebSocketErrorHandler;
-  private onConnect?: WebSocketEventHandler;
+  private onConnect?: () => void;
   private onDisconnect?: WebSocketEventHandler;
 
   // Set event handlers
@@ -216,7 +216,7 @@ class WebSocketClient {
         this.onError = handler as WebSocketErrorHandler;
         break;
       case 'connect':
-        this.onConnect = handler;
+        this.onConnect = handler as () => void;
         break;
       case 'disconnect':
         this.onDisconnect = handler;

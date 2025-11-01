@@ -44,6 +44,7 @@ async def list_models():
         models.append(ModelInfo(
             id=model_config.to_full_id(),
             alias=model_id,
+            name=model_config.model_name,
             provider=model_config.provider,
             enabled=model_config.enabled,
             description=model_config.description or f"{model_config.provider.upper()} - {model_config.model_name}"
@@ -72,6 +73,7 @@ async def get_model(model_alias: str):
     return ModelInfo(
         id=model_config.to_full_id(),
         alias=model_alias,
+        name=model_config.model_name,
         provider=model_config.provider,
         enabled=model_config.enabled,
         description=model_config.description or f"{model_config.provider.upper()} - {model_config.model_name}"

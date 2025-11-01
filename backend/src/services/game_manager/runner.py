@@ -258,7 +258,7 @@ def run_game(
 
     logging.save_game(state, gamemaster.logs, log_directory)
     print(f"Game logs saved to: {log_directory}")
-    print(f"View in browser: http://localhost:8081/?session_id={session_id}")
+    print(f"View in browser: http://localhost:8080/?session_id={session_id}")
 
     return winner, log_directory
 

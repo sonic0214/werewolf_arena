@@ -4,7 +4,7 @@ import { CardProps } from '@/types';
 
 export const Card = React.forwardRef<HTMLDivElement, CardProps>(
   ({ className, title, subtitle, footer, padding = 'md', border = true, shadow = true, children, ...props }, ref) => {
-    const baseClasses = 'bg-white rounded-lg';
+    const baseClasses = 'rounded-lg';
 
     const paddings = {
       sm: 'p-3',

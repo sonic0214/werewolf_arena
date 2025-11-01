@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { ClawScratchAnimation, ScratchMarksOverlay } from '@/components/ui/ClawScratchAnimation';
 import { Player } from '@/types/game';
 import { cn, getRoleColor, getRoleIcon, getStatusColor } from '@/lib/utils';
 
@@ -21,9 +22,22 @@ export function PlayerCard({
   onSelect,
   className
 }: PlayerCardProps) {
+  const [shouldTriggerAnimation, setShouldTriggerAnimation] = useState(false);
+  const [hasBeenEliminated, setHasBeenEliminated] = useState(false);
+  const previousAliveRef = useRef(player.alive);
+
   const roleIcon = getRoleIcon(player.role);
   const roleColorClass = getRoleColor(player.role);
   const statusColorClass = getStatusColor(player.alive ? 'alive' : 'dead');
+
+  // Trigger animation when player is eliminated (alive changes from true to false)
+  useEffect(() => {
+    if (previousAliveRef.current === true && player.alive === false) {
+      setShouldTriggerAnimation(true);
+      setHasBeenEliminated(true);
+    }
+    previousAliveRef.current = player.alive;
+  }, [player.alive]);
 
   const handleClick = () => {
     if (onSelect && player.alive) {
@@ -41,13 +55,12 @@ export function PlayerCard({
         className
       )}
       padding="sm"
-      onClick={handleClick}
     >
-      <div className="flex items-center space-x-3">
+      <div className="flex items-center space-x-3" onClick={handleClick}>
         {/* Avatar */}
         <div className="relative">
           <div className={cn(
-            'w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold',
+            'w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold relative overflow-hidden',
             player.alive ? 'bg-gray-100' : 'bg-gray-200'
           )}>
             {player.avatar ? (
@@ -62,6 +75,17 @@ export function PlayerCard({
               )}>
                 {player.name.charAt(0).toUpperCase()}
               </span>
+            )}
+
+            {/* Claw scratch animation (triggers when eliminated) */}
+            <ClawScratchAnimation
+              trigger={shouldTriggerAnimation}
+              onComplete={() => setShouldTriggerAnimation(false)}
+            />
+
+            {/* Persistent scratch marks for eliminated players */}
+            {hasBeenEliminated && (
+              <ScratchMarksOverlay />
             )}
           </div>
 

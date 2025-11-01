@@ -13,9 +13,10 @@ from .timing_loader import get_timing_config, TimingConfig
 class GameSettings(BaseSettings):
     """游戏配置"""
     num_players: int = 6
-    max_debate_turns: int = 5  # 增加辩论轮数到5轮
-    default_threads: int = 2
-    retries: int = 3
+    max_debate_turns: int = 1  # 增加辩论轮数到5轮
+    default_threads: int = 4
+    debate_concurrent: int = 3  # 发言阶段并发数
+    retries: int = 2
     run_synthetic_votes: bool = True
 
     @property
@@ -63,6 +64,18 @@ class LLMSettings(BaseSettings):
 
     # Anthropic
     anthropic_api_key: Optional[str] = None
+
+    # MiniMax
+    minimax_api_key: Optional[str] = None
+    minimax_base_url: str = "https://api.minimaxi.com/anthropic"
+    minimax_model: str = "MiniMax-M2"
+
+    # SiliconFlow
+    siliconflow_api_key: Optional[str] = None
+    siliconflow_base_url: str = "https://api.siliconflow.cn/v1"
+
+    # 默认使用的模型 - 改为硅基流动的模型
+    default_model: str = "siliconflow/deepseek-ai/DeepSeek-V3"
 
 
 class ServerSettings(BaseSettings):
@@ -139,18 +152,22 @@ settings = Settings()
 NUM_PLAYERS = settings.game.num_players
 MAX_DEBATE_TURNS = settings.game.max_debate_turns
 DEFAULT_THREADS = settings.game.default_threads
+DEBATE_CONCURRENT = settings.game.debate_concurrent
 RETRIES = settings.game.retries
 RUN_SYNTHETIC_VOTES = settings.game.run_synthetic_votes
 
 
-# 玩家名字列表
-NAMES = [
-    "Derek", "Scott", "Jacob", "Isaac", "Hayley", "David", "Tyler",
-    "Ginger", "Jackson", "Mason", "Dan", "Bert", "Will", "Sam",
-    "Paul", "Leah", "Harold"
+# 玩家名字列表 - 使用模型名作为玩家名
+PLAYER_MODEL_NAMES = [
+    "MiniMax-M1-80k",      # 使用 MiniMaxAI/MiniMax-M1-80k (替换Hunyuan-A13B)
+    "GLM-4.6",             # 使用 zai-org/GLM-4.6 (保留)
+    "Qwen3-32B",           # 使用 Qwen/Qwen3-32B (保留)
+    "DeepSeek-V3.2",       # 使用 deepseek-ai/DeepSeek-V3.2-Exp (保留)
+    "Kimi-Dev-72B",        # 使用 moonshotai/Kimi-Dev-72B (保留)
+    "Ring-flash-2.0"       # 使用 inclusionAI/Ring-flash-2.0 (替换Hunyuan-MT-7B)
 ]
 
 
 def get_player_names():
-    """随机选择玩家名字"""
-    return random.sample(NAMES, NUM_PLAYERS)
+    """获取所有玩家模型名（6个玩家对应6个不同模型）"""
+    return PLAYER_MODEL_NAMES.copy()

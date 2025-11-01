@@ -3,9 +3,11 @@ WebSocket API路由
 WebSocket API Routes for real-time game updates
 """
 
-from typing import Dict, List
+from typing import Dict, List, Optional, Any
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from src.services.game_manager.session_manager import game_manager
+from src.services.logger.realtime_logger import realtime_logger
+from src.services.game_manager.sequence_manager import sequence_manager, ActionType
 import json
 import asyncio
 from datetime import datetime
@@ -98,6 +100,118 @@ class ConnectionManager:
         }
         await self.broadcast_to_session(json.dumps(message), session_id)
 
+    async def broadcast_game_complete_v2(self, session_id: str, winner: str, winner_name: str, players_info: dict, round_number: int):
+        """Broadcast game completion with player roles to all connections in a session"""
+        message = {
+            "type": "game_complete",
+            "data": {
+                "winner": winner,
+                "winner_name": winner_name,
+                "players_info": players_info,
+                "round_number": round_number
+            },
+            "timestamp": datetime.now().isoformat()
+        }
+        await self.broadcast_to_session(json.dumps(message), session_id)
+
+    
+    async def broadcast_player_action(self, session_id: str, action_event):
+        """Broadcast player action with sequence number"""
+        message = {
+            "type": "player_action",
+            "data": action_event.to_dict(),
+            "timestamp": datetime.now().isoformat()
+        }
+        await self.broadcast_to_session(json.dumps(message), session_id)
+
+    async def broadcast_debate_turn(self, session_id: str, player_name: str, dialogue: str, sequence_number: int):
+        """Broadcast debate turn with sequence"""
+        message = {
+            "type": "debate_turn",
+            "data": {
+                "sequence_number": sequence_number,
+                "player_name": player_name,
+                "dialogue": dialogue,
+                "timestamp": datetime.now().isoformat()
+            },
+            "timestamp": datetime.now().isoformat()
+        }
+        await self.broadcast_to_session(json.dumps(message), session_id)
+
+    async def broadcast_vote_cast(self, session_id: str, voter: str, target: str, sequence_number: int):
+        """Broadcast individual vote with sequence"""
+        message = {
+            "type": "vote_cast",
+            "data": {
+                "sequence_number": sequence_number,
+                "voter": voter,
+                "target": target,
+                "timestamp": datetime.now().isoformat()
+            },
+            "timestamp": datetime.now().isoformat()
+        }
+        await self.broadcast_to_session(json.dumps(message), session_id)
+
+    async def broadcast_night_action(self, session_id: str, action_type: str, player_name: str, target_name: Optional[str] = None, details: Optional[Dict[str, Any]] = None, sequence_number: Optional[int] = None):
+        """Broadcast night action with sequence"""
+        message = {
+            "type": "night_action",
+            "data": {
+                "sequence_number": sequence_number,
+                "action_type": action_type,
+                "player_name": player_name,
+                "player_role": details.get("role") if details else None,
+                "target_name": target_name,
+                "details": details or {},
+                "timestamp": datetime.now().isoformat()
+            },
+            "timestamp": datetime.now().isoformat()
+        }
+        await self.broadcast_to_session(json.dumps(message), session_id)
+
+    async def broadcast_phase_change(self, session_id: str, phase: str, round_number: int, sequence_number: Optional[int] = None):
+        """Broadcast phase change with sequence"""
+        message = {
+            "type": "phase_change",
+            "data": {
+                "sequence_number": sequence_number,
+                "phase": phase,
+                "round_number": round_number,
+                "timestamp": datetime.now().isoformat()
+            },
+            "timestamp": datetime.now().isoformat()
+        }
+        await self.broadcast_to_session(json.dumps(message), session_id)
+
+    async def broadcast_player_exile(self, session_id: str, exiled_player: str, round_number: int, sequence_number: Optional[int] = None):
+        """Broadcast player exile"""
+        message = {
+            "type": "player_exile",
+            "data": {
+                "sequence_number": sequence_number,
+                "exiled_player": exiled_player,
+                "round_number": round_number,
+                "timestamp": datetime.now().isoformat()
+            },
+            "timestamp": datetime.now().isoformat()
+        }
+        await self.broadcast_to_session(json.dumps(message), session_id)
+
+    async def broadcast_player_summary(self, session_id: str, player_name: str, summary: str, round_number: int, sequence_number: Optional[int] = None):
+        """Broadcast player summary"""
+        message = {
+            "type": "player_summary",
+            "data": {
+                "sequence_number": sequence_number,
+                "player_name": player_name,
+                "summary": summary,
+                "round_number": round_number,
+                "timestamp": datetime.now().isoformat()
+            },
+            "timestamp": datetime.now().isoformat()
+        }
+        await self.broadcast_to_session(json.dumps(message), session_id)
+
     def get_connection_count(self, session_id: str) -> int:
         """Get number of active connections for a session"""
         return len(self.active_connections.get(session_id, []))
@@ -130,6 +244,15 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                     "game_state": game_session.state.to_dict(),
                     "status": "running" if game_session.is_running else "stopped"
                 },
+                "timestamp": datetime.now().isoformat()
+            }), websocket)
+
+        # Send recent logs
+        recent_logs = realtime_logger.get_logs(session_id, limit=50)
+        if recent_logs:
+            await manager.send_personal_message(json.dumps({
+                "type": "log_history",
+                "data": {"logs": recent_logs},
                 "timestamp": datetime.now().isoformat()
             }), websocket)
 
@@ -213,9 +336,87 @@ async def notify_round_complete(session_id: str, round_data: dict, next_phase: d
     """Notify all clients about round completion"""
     await manager.broadcast_round_complete(session_id, round_data, next_phase)
 
-async def notify_game_complete(session_id: str, winner: str, final_round: dict, game_state: dict):
+async def notify_game_complete(session_id: str, winner: str, winner_name: str = None, players_info: dict = None, round_number: int = 0, final_round: dict = None, game_state: dict = None):
     """Notify all clients about game completion"""
-    await manager.broadcast_game_complete(session_id, winner, final_round, game_state)
+    # 如果提供了新参数，使用新格式
+    if winner_name and players_info is not None:
+        await manager.broadcast_game_complete_v2(session_id, winner, winner_name, players_info, round_number)
+    else:
+        # 兼容旧格式
+        await manager.broadcast_game_complete(session_id, winner, final_round or {}, game_state or {})
+
+async def notify_player_action(session_id: str, action_type: ActionType, player_name: str, player_role: str, target_name: Optional[str] = None, details: Optional[Dict[str, Any]] = None):
+    """Notify all clients about a player action with sequence"""
+    action_event = sequence_manager.create_action_event(
+        session_id=session_id,
+        action_type=action_type,
+        player_name=player_name,
+        player_role=player_role,
+        target_name=target_name,
+        details=details
+    )
+    await manager.broadcast_player_action(session_id, action_event)
+    return action_event.sequence_number
+
+async def notify_debate_turn(session_id: str, player_name: str, dialogue: str, player_role: str):
+    """Notify all clients about a debate turn"""
+    sequence_number = sequence_manager.get_next_sequence(session_id)
+    await manager.broadcast_debate_turn(session_id, player_name, dialogue, sequence_number)
+
+    # Also log the action
+    await realtime_logger.log_player_action(
+        session_id=session_id,
+        player_name=player_name,
+        action=f"发言: {dialogue}",
+        round_number=None,  # Will be filled by caller
+        phase="day"
+    )
+
+    return sequence_number
+
+async def notify_vote_cast(session_id: str, voter: str, target: str, voter_role: str):
+    """Notify all clients about an individual vote"""
+    sequence_number = sequence_manager.get_next_sequence(session_id)
+    await manager.broadcast_vote_cast(session_id, voter, target, sequence_number)
+
+    # Also log the vote
+    await realtime_logger.log_vote(
+        session_id=session_id,
+        voter=voter,
+        target=target,
+        round_number=None,  # Will be filled by caller
+        phase="day"
+    )
+
+    return sequence_number
+
+async def notify_night_action(session_id: str, action_type: ActionType, player_name: str, player_role: str, target_name: Optional[str] = None, details: Optional[Dict[str, Any]] = None):
+    """Notify all clients about a night action"""
+    sequence_number = sequence_manager.get_next_sequence(session_id)
+    await manager.broadcast_night_action(session_id, action_type.value, player_name, target_name, details, sequence_number)
+    return sequence_number
+
+async def notify_phase_change(session_id: str, phase: str, round_number: int):
+    """Notify all clients about phase change"""
+    sequence_number = sequence_manager.get_next_sequence(session_id)
+    await manager.broadcast_phase_change(session_id, phase, round_number, sequence_number)
+
+    # Also log the phase change
+    await realtime_logger.log_phase_change(session_id, phase, round_number)
+
+    return sequence_number
+
+async def notify_player_exile(session_id: str, exiled_player: str, round_number: int):
+    """Notify all clients about player exile"""
+    sequence_number = sequence_manager.get_next_sequence(session_id)
+    await manager.broadcast_player_exile(session_id, exiled_player, round_number, sequence_number)
+    return sequence_number
+
+async def notify_player_summary(session_id: str, player_name: str, summary: str, round_number: int):
+    """Notify all clients about player summary"""
+    sequence_number = sequence_manager.get_next_sequence(session_id)
+    await manager.broadcast_player_summary(session_id, player_name, summary, round_number, sequence_number)
+    return sequence_number
 
 def get_active_connections_count(session_id: str) -> int:
     """Get number of active connections for a session"""
@@ -226,5 +427,12 @@ __all__ = [
     'notify_game_update',
     'notify_round_complete',
     'notify_game_complete',
+    'notify_player_action',
+    'notify_debate_turn',
+    'notify_vote_cast',
+    'notify_night_action',
+    'notify_phase_change',
+    'notify_player_exile',
+    'notify_player_summary',
     'get_active_connections_count'
 ]

@@ -11,6 +11,7 @@ class ModelInfo(BaseModel):
     """模型信息"""
     id: str = Field(..., description="模型完整ID")
     alias: str = Field(..., description="模型别名")
+    name: str = Field(..., description="模型显示名称")
     provider: str = Field(..., description="提供商: openai, glm, openrouter, anthropic")
     enabled: bool = Field(True, description="是否启用")
     description: Optional[str] = Field(None, description="模型描述")

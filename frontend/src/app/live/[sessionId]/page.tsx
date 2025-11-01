@@ -12,6 +12,9 @@ import { formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { GameLog, useGameLogs } from '@/components/game/GameLog';
 import { GameStats } from '@/components/game/GameStats';
+import { GameTimeline, generateTimelineEvents } from '@/components/game/GameTimeline';
+import { LiveGameProgress } from '@/components/game/LiveGameProgress';
+import { PlayerInteractions, generateInteractions } from '@/components/game/PlayerInteractions';
 import { useCallback } from 'react';
 
 export default function LiveGamePage() {
@@ -31,6 +34,12 @@ export default function LiveGamePage() {
 
   // Parse game logs from current game state with error handling
   const gameLogs = useGameLogs(currentGame);
+
+  // Generate timeline events
+  const timelineEvents = currentGame ? generateTimelineEvents(currentGame) : [];
+
+  // Generate player interactions
+  const playerInteractions = currentGame ? generateInteractions(currentGame) : [];
 
   // Debug state
   const [debugInfo, setDebugInfo] = useState<string>('-- Initializing --');
@@ -59,7 +68,8 @@ export default function LiveGamePage() {
         getGameStatus(sessionId);
         setDebugInfo(prev => prev + `\nCalled getGameStatus successfully`);
       } catch (error) {
-        setDebugInfo(prev => prev + `\nError calling getGameStatus: ${error.message}`);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        setDebugInfo(prev => prev + `\nError calling getGameStatus: ${errorMessage}`);
       }
     }
   }, [sessionId]); // Remove getGameStatus from dependencies to prevent infinite re-renders
@@ -69,6 +79,8 @@ export default function LiveGamePage() {
   // when it receives messages from the server
 
   const handleBackToHome = () => {
+    // Clear the redirect flag to prevent auto-redirect
+    sessionStorage.removeItem('shouldRedirectToGame');
     router.push('/');
   };
 
@@ -172,6 +184,11 @@ export default function LiveGamePage() {
 
       {/* Game Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* 实时进程 - 全宽 */}
+        <div className="mb-8">
+          <LiveGameProgress gameState={currentGame} recentLogs={gameLogs.slice(-5)} />
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
           {/* Main Game Area */}
@@ -213,7 +230,7 @@ export default function LiveGamePage() {
                   <div className="border-t border-gray-700 pt-4">
                     <h3 className="font-semibold mb-2">当前阶段</h3>
                     <div className="flex items-center space-x-4">
-                      <Badge variant={currentGame.current_round.phase.type === 'day' ? 'warning' : 'info'}>
+                      <Badge variant={currentGame.current_round.phase.type === 'day' ? 'warning' : 'secondary'}>
                         {currentGame.current_round.phase.type === 'day' ? '白天' : '黑夜'}
                       </Badge>
                       <span className="text-gray-300">
@@ -248,6 +265,16 @@ export default function LiveGamePage() {
                 </div>
               </div>
             </Card>
+
+            {/* Player Interactions */}
+            <PlayerInteractions
+              players={currentGame?.players || []}
+              interactions={playerInteractions}
+              currentRound={currentGame?.rounds?.length || 0}
+            />
+
+            {/* Game Timeline */}
+            <GameTimeline events={timelineEvents} maxHeight="600px" />
 
             {/* Current Round Details */}
             {currentGame?.current_round && (
@@ -334,7 +361,7 @@ export default function LiveGamePage() {
             <GameStats gameState={currentGame} />
 
             {/* Game Logs */}
-            <GameLog logs={gameLogs} maxHeight="300px" />
+            <GameLog logs={gameLogs} maxHeight="400px" showFilters={true} />
 
             {/* Connection Status */}
             <Card>

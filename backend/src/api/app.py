@@ -82,10 +82,11 @@ async def health_check():
 
 
 # 注册API路由
-from src.api.v1.routes import games, status, models, timing, websocket
+from src.api.v1.routes import games, status, models, timing, websocket, logs
 
 app.include_router(games.router, prefix="/api/v1/games", tags=["Games"])
 app.include_router(status.router, prefix="/api/v1/status", tags=["Status"])
 app.include_router(models.router, prefix="/api/v1/models", tags=["Models"])
 app.include_router(timing.router, prefix="/api/v1/config", tags=["Timing Configuration"])
+app.include_router(logs.router, prefix="/api/v1/games", tags=["Logs"])
 app.include_router(websocket.router, tags=["WebSocket"])

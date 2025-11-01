@@ -34,12 +34,7 @@ export function useGame(sessionId?: string) {
 
         wsClient.on('game_complete', (message: GameCompleteMessage) => {
           actions.setCurrentGame(message.data.game_state);
-          actions.setMessage(`Game completed! ${message.data.winner} win!`);
-          actions.addNotification({
-            type: 'success',
-            title: 'Game Complete',
-            message: `${message.data.winner} team won the game!`,
-          });
+          actions.setMessage(`Game completed! ${message.data.winner} team won the game!`);
         });
 
         wsClient.on('error', (error: Error) => {
@@ -83,7 +78,7 @@ export function useGame(sessionId?: string) {
     const { gamesAPI } = require('@/lib/api/games');
     pollIntervalRef.current = gamesAPI.pollGameStatus(
       sessionId,
-      (status) => {
+      (status: any) => {
         actions.setCurrentGame(status.game_state || null);
         actions.setGameView(status.game_view || null);
       }

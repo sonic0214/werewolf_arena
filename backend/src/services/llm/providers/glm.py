@@ -27,6 +27,7 @@ class GLMProvider(LLMProvider):
         temperature: float = 0.7,
         json_mode: bool = True,
         response_schema: Optional[Dict[str, Any]] = None,
+        system_message: Optional[str] = None,
         **kwargs
     ) -> str:
         """使用GLM API生成文本"""
@@ -34,8 +35,14 @@ class GLMProvider(LLMProvider):
         if json_mode:
             response_format = {"type": "json_object"}
 
+        # 构建消息数组
+        messages = []
+        if system_message:
+            messages.append({"role": "system", "content": system_message})
+        messages.append({"role": "user", "content": prompt})
+
         response = self.client.chat.completions.create(
-            messages=[{"role": "user", "content": prompt}],
+            messages=messages,
             response_format=response_format,
             model=model,
             temperature=temperature,

@@ -1,81 +1,24 @@
-import React from 'react';
-import { cn } from '@/lib/utils';
-import { BaseComponentProps } from '@/types';
+import * as React from "react"
+import { cn } from "@/lib/utils"
 
-interface InputProps extends BaseComponentProps {
-  type?: 'text' | 'email' | 'password' | 'number' | 'search';
-  placeholder?: string;
-  value?: string;
-  defaultValue?: string;
-  disabled?: boolean;
-  required?: boolean;
-  error?: string;
-  label?: string;
-  helperText?: string;
-  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
-  onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
-}
+export interface InputProps
+  extends React.InputHTMLAttributes<HTMLInputElement> {}
 
-export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({
-    className,
-    type = 'text',
-    placeholder,
-    value,
-    defaultValue,
-    disabled = false,
-    required = false,
-    error,
-    label,
-    helperText,
-    onChange,
-    onBlur,
-    onFocus,
-    ...props
-  }, ref) => {
-    const baseClasses = 'flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50';
-
-    const errorClasses = error ? 'border-red-500 focus:ring-red-500' : '';
-
+const Input = React.forwardRef<HTMLInputElement, InputProps>(
+  ({ className, type, ...props }, ref) => {
     return (
-      <div className="w-full">
-        {label && (
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            {label}
-            {required && <span className="text-red-500 ml-1">*</span>}
-          </label>
+      <input
+        type={type}
+        className={cn(
+          "flex h-10 w-full rounded-md border border-slate-600 bg-slate-800/50 px-3 py-2 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50",
+          className
         )}
-
-        <input
-          ref={ref}
-          type={type}
-          className={cn(baseClasses, errorClasses, className)}
-          placeholder={placeholder}
-          value={value}
-          defaultValue={defaultValue}
-          disabled={disabled}
-          required={required}
-          onChange={onChange}
-          onBlur={onBlur}
-          onFocus={onFocus}
-          {...props}
-        />
-
-        {error && (
-          <p className="mt-1 text-sm text-red-600">
-            {error}
-          </p>
-        )}
-
-        {helperText && !error && (
-          <p className="mt-1 text-sm text-gray-500">
-            {helperText}
-          </p>
-        )}
-      </div>
-    );
+        ref={ref}
+        {...props}
+      />
+    )
   }
-);
+)
+Input.displayName = "Input"
 
-Input.displayName = 'Input';
+export { Input }

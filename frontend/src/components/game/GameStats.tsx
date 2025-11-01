@@ -143,7 +143,7 @@ export function GameStats({ gameState }: GameStatsProps) {
 
             <div className="mb-4">
               <div className="flex items-center space-x-2">
-                <Badge variant={currentPhaseStats.phase.type === 'day' ? 'warning' : 'info'}>
+                <Badge variant={currentPhaseStats.phase.type === 'day' ? 'warning' : 'secondary'}>
                   {currentPhaseStats.phase.type === 'day' ? '白天' : '黑夜'}
                 </Badge>
                 <span className="text-gray-300">

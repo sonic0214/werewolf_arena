@@ -92,6 +92,43 @@ export interface APIError {
   timestamp: string;
 }
 
+// Game API Types
+export interface GameStartRequest {
+  villager_model: string;
+  werewolf_model: string;
+  player_names?: string[];
+  discussion_time_minutes?: number;
+  max_rounds?: number;
+}
+
+export interface GameStartResponse {
+  session_id: string;
+  status: string;
+  message: string;
+}
+
+export interface GameStatusResponse {
+  session_id: string;
+  status: 'pending' | 'running' | 'finished';
+  current_round?: any;
+  players?: any[];
+  rounds?: any[];
+  winner?: 'werewolf' | 'villager' | null;
+  created_at?: string;
+  updated_at?: string;
+  settings?: any;
+}
+
+export interface GameListResponse {
+  games: Array<{
+    session_id: string;
+    status: string;
+    created_at: string;
+    updated_at: string;
+  }>;
+  total: number;
+}
+
 // HTTP Status Codes
 export const HTTP_STATUS = {
   OK: 200,

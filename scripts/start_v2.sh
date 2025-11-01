@@ -31,9 +31,9 @@ fi
 source ../venv/bin/activate
 
 # 检查端口是否被占用
-if lsof -i :8001 > /dev/null 2>&1; then
-    echo "⚠️  端口8001已被占用，正在尝试关闭占用进程..."
-    lsof -ti :8001 | xargs kill -9
+if lsof -i :8000 > /dev/null 2>&1; then
+    echo "⚠️  端口8000已被占用，正在尝试关闭占用进程..."
+    lsof -ti :8000 | xargs kill -9
     sleep 2
 fi
 
@@ -42,7 +42,7 @@ echo "📦 安装后端依赖..."
 pip install -q -r requirements.txt
 
 # 启动后端服务
-python3 -m uvicorn src.api.app:app --reload --host 0.0.0.0 --port 8001 > ../backend_v2.log 2>&1 &
+python3 -m uvicorn src.api.app:app --reload --host 0.0.0.0 --port 8000 > ../backend_v2.log 2>&1 &
 BACKEND_PID=$!
 
 cd ..
@@ -52,7 +52,7 @@ echo "⏳ 等待后端服务启动..."
 sleep 5
 
 # 检查后端是否启动成功
-if curl -s http://localhost:8001/health > /dev/null 2>&1; then
+if curl -s http://localhost:8000/health > /dev/null 2>&1; then
     echo "✅ FastAPI 后端服务启动成功 (PID: $BACKEND_PID)"
 else
     echo "❌ 后端服务启动失败，请检查日志: tail -f backend_v2.log"
@@ -101,8 +101,8 @@ echo ""
 echo "🎉 v2.0 服务启动完成！"
 echo "=========================================="
 echo "🎮 现代前端: http://localhost:3000"
-echo "🔧 后端API:  http://localhost:8001/docs"
-echo "📊 API健康检查: http://localhost:8001/health"
+echo "🔧 后端API:  http://localhost:8000/docs"
+echo "📊 API健康检查: http://localhost:8000/health"
 echo ""
 echo "📝 日志文件:"
 echo "   后端日志: tail -f backend_v2.log"
@@ -117,9 +117,9 @@ cat > ../scripts/stop_v2.sh << 'EOF'
 echo "🛑 停止 Werewolf Arena v2.0 服务..."
 
 # 停止后端服务
-if lsof -i :8001 > /dev/null 2>&1; then
-    echo "停止 FastAPI 后端服务 (端口8001)..."
-    lsof -ti :8001 | xargs kill -9
+if lsof -i :8000 > /dev/null 2>&1; then
+    echo "停止 FastAPI 后端服务 (端口8000)..."
+    lsof -ti :8000 | xargs kill -9
 fi
 
 # 停止前端服务
@@ -138,7 +138,7 @@ trap 'echo ""; echo "🛑 正在停止服务..."; kill $BACKEND_PID $FRONTEND_PI
 
 # 持续监控服务状态
 while true; do
-    if ! curl -s http://localhost:8001/health > /dev/null 2>&1; then
+    if ! curl -s http://localhost:8000/health > /dev/null 2>&1; then
         echo "❌ 后端服务异常，请检查日志"
         tail -10 backend_v2.log
     fi

@@ -38,6 +38,9 @@ interface UIStoreState {
   setLoadingMessage: (key: string, message: string) => void;
   removeLoadingMessage: (key: string) => void;
 
+  // Helper methods
+  playNotificationSound: (type: Notification['type']) => void;
+
   // Reset
   reset: () => void;
 }

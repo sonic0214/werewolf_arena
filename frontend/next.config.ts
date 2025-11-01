@@ -21,11 +21,17 @@ const nextConfig: NextConfig = {
   compress: true,
 
   // 启用严格模式
-  reactStrictMode: true,
+  reactStrictMode: false, // 禁用以避免静态生成错误
 
   // 启用实验性功能
   experimental: {
-    // Next.js 14 中 appDir 已经是默认功能，不需要显式启用
+    // 禁用严格模式以避免静态生成错误
+    optimizeCss: false,
+  },
+
+  // 图片配置
+  images: {
+    unoptimized: true, // 禁用图片优化以避免构建错误
   },
 };
 
